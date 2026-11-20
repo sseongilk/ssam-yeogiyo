@@ -14,6 +14,28 @@ import re
 from fontTools import subset
 from fontTools.ttLib import TTFont
 
+# 공개 주소 (링크 미리보기 그림은 절대 주소여야 함). 저장소 이름을 바꾸면 여기도 바꿈
+SITE = "https://sseongilk.github.io/ssam-yeogiyo/"
+DESC = "콜벨 울리는 밤 근무, 원하는 걸 골라 가져다주고 진상은 연타로 날려 버리기! 아침 7시 퇴근까지 버텨요."
+HEAD = (
+    '<meta name="description" content="' + DESC + '">'
+    '<meta property="og:type" content="website">'
+    '<meta property="og:title" content="쌤! 여기요! - 콜벨 팡팡">'
+    '<meta property="og:description" content="' + DESC + '">'
+    '<meta property="og:image" content="' + SITE + 'og.png">'
+    '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'
+    '<meta property="og:url" content="' + SITE + '">'
+    '<meta name="twitter:card" content="summary_large_image">'
+    '<meta name="theme-color" content="#28305a">'
+    '<link rel="manifest" href="manifest.webmanifest">'
+    '<link rel="icon" type="image/png" href="icon-192.png">'
+    '<link rel="apple-touch-icon" href="apple-touch-icon.png">'
+    '<meta name="mobile-web-app-capable" content="yes">'
+    '<meta name="apple-mobile-web-app-capable" content="yes">'
+    '<meta name="apple-mobile-web-app-title" content="쌤! 여기요!">'
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'
+)
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "src")
 FONTS = os.path.join(ROOT, "fonts")
@@ -95,6 +117,7 @@ def main():
         return (
             "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+            + HEAD +
             "</head><body>" + body + "</body></html>"
         )
 
@@ -105,6 +128,13 @@ def main():
     with open(os.path.join(docs, "index.html"), "w", encoding="utf-8", newline="\n") as f:
         f.write(wrap(web_html))
     print(f"index.html: {len(html.encode('utf-8')) / 1024:.0f} KB")
+    # 아이콘·링크 미리보기 그림·manifest를 게시 폴더에 복사
+    import shutil
+    assets = os.path.join(ROOT, "assets")
+    if os.path.isdir(assets):
+        for name in os.listdir(assets):
+            for dst in (DIST, docs):
+                shutil.copyfile(os.path.join(assets, name), os.path.join(dst, name))
 
 
 if __name__ == "__main__":

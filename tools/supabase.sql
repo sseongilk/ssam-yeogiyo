@@ -19,18 +19,26 @@ create table if not exists public.nn_scores (
   at       timestamptz not null default now()
 );
 
+-- 기록·업적 (JSON 글자, 400자까지)
+alter table public.nn_scores add column if not exists stats text not null default '' check (char_length(stats) <= 400);
+-- 같은 이름 금지 (대소문자 무시)
+create unique index if not exists nn_scores_nick_key on public.nn_scores (lower(nick));
+
 alter table public.nn_scores enable row level security;
 drop policy if exists "모두 읽기" on public.nn_scores;
 create policy "모두 읽기" on public.nn_scores for select to anon, authenticated using (true);
 
 -- 비밀값·복구 코드는 읽을 수 없게 열 단위로만 읽기 허용, 직접 쓰기는 막음
 revoke all on public.nn_scores from anon, authenticated;
-grant select (id, nick, ward, look, best, total, day, day_best, at) on public.nn_scores to anon, authenticated;
+grant select (id, nick, ward, look, best, total, stats, day, day_best, at) on public.nn_scores to anon, authenticated;
+
+drop function if exists public.nn_submit(uuid, text, text, text, text, text, integer, bigint, date, integer);
+drop function if exists public.nn_restore(text);
 
 -- p_day가 null이면 오늘의 근무 기록은 그대로 둠. 이름·병동·꾸미기는 항상 갱신, 복구 코드는 처음 만들 때만 저장
 create or replace function public.nn_submit(
   p_id uuid, p_secret text, p_code text, p_nick text, p_ward text, p_look text,
-  p_best integer, p_total bigint, p_day date, p_day_best integer
+  p_best integer, p_total bigint, p_day date, p_day_best integer, p_stats text default ''
 ) returns void
 language plpgsql
 security definer
@@ -40,11 +48,12 @@ begin
   if p_secret is null or char_length(p_secret) < 32 then
     raise exception 'bad secret';
   end if;
-  insert into nn_scores (id, secret, code, nick, ward, look, best, total, day, day_best)
+  insert into nn_scores (id, secret, code, nick, ward, look, best, total, day, day_best, stats)
   values (p_id, p_secret, upper(p_code), p_nick, coalesce(p_ward, ''), coalesce(p_look, ''),
           coalesce(p_best, 0), coalesce(p_total, 0), p_day,
-          case when p_day is null then 0 else coalesce(p_day_best, 0) end)
+          case when p_day is null then 0 else coalesce(p_day_best, 0) end, coalesce(p_stats, ''))
   on conflict (id) do update set
+    stats = case when coalesce(excluded.stats, '') = '' then nn_scores.stats else excluded.stats end,
     nick  = excluded.nick,
     ward  = excluded.ward,
     look  = excluded.look,
@@ -61,12 +70,12 @@ begin
   where nn_scores.secret = excluded.secret;
 end;
 $$;
-revoke all on function public.nn_submit(uuid, text, text, text, text, text, integer, bigint, date, integer) from public;
-grant execute on function public.nn_submit(uuid, text, text, text, text, text, integer, bigint, date, integer) to anon, authenticated;
+revoke all on function public.nn_submit(uuid, text, text, text, text, text, integer, bigint, date, integer, text) from public;
+grant execute on function public.nn_submit(uuid, text, text, text, text, text, integer, bigint, date, integer, text) to anon, authenticated;
 
 -- 복구 코드로 내 줄 되찾기. 마구 넣어 보기를 늦추려고 0.5초 쉼
 create or replace function public.nn_restore(p_code text)
-returns table (id uuid, secret text, code text, nick text, ward text, look text, best integer, total bigint)
+returns table (id uuid, secret text, code text, nick text, ward text, look text, best integer, total bigint, stats text)
 language plpgsql
 security definer
 set search_path = public
@@ -74,7 +83,7 @@ as $$
 begin
   perform pg_sleep(0.5);
   return query
-    select s.id, s.secret, s.code, s.nick, s.ward, s.look, s.best, s.total
+    select s.id, s.secret, s.code, s.nick, s.ward, s.look, s.best, s.total, s.stats
     from nn_scores s
     where s.code = upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
 end;

@@ -66,6 +66,8 @@
     e: [70, 70, 84], E: [44, 44, 56], j: [250, 250, 250],
     fl: [222, 240, 236], fl2: [206, 230, 226], wall: [238, 246, 250], wall2: [214, 228, 238],
     sun: [255, 196, 140], sun2: [255, 228, 180], X: [255, 240, 150],
+    pk: [255, 234, 240], pk2: [250, 214, 226], wd: [226, 190, 146], wd2: [210, 172, 126],
+    sea: [196, 230, 248], sea2: [172, 214, 240], sky: [200, 232, 255], vip: [255, 236, 170], vip2: [246, 218, 140],
   };
   const CSS = {};
   for (const k in PAL) CSS[k] = `rgb(${PAL[k].join(',')})`;
@@ -210,17 +212,17 @@
   const NURSE = [
     '......OOOO......',
     '.....OhhhhO.....',
-    '...OOOhhhhOOO...',
+    '...OOOPPPPOOO...',
     '..OhhhhhhhhhhO..',
     '.OhhhhhhhhhhhhO.',
     '.OhhhhhhhFFhhhO.',
     '.OhhhhFFFFFFFhO.',
     '.OhhFKFFFFKFFhO.',
     '.OhhFKFFFFKFFhO.',
-    '.OhhPPFFFFPPFhO.',
-    '.OhOFFFOOFFFOhO.',
-    '.OhhOOFFFFOOhhO.',
-    '.OhhhOqFFqOhhhO.',
+    '..OFPPFFFFPPFO..',
+    '..OFFFFOOFFFFO..',
+    '...OOFFFFFFOO...',
+    '....OOqFFqOO....',
     '..OOqqqFFqqqOO..',
     '.OqOqqqqqqWWOqO.',
     '.OqOqqqqqqWBOqO.',
@@ -232,8 +234,8 @@
     '...OOOOO.OOOOO..',
   ];
   const NURSE_BLINK = NURSE.map((r, j) => j === 7 ? '.OhhFFFFFFFFFhO.' : j === 8 ? '.OhhOOFFFFOOFhO.' : r);
-  const NURSE_TIRED = NURSE.map((r, j) => j === 7 ? '.OhhFFFFFFFFFhO.' : j === 8 ? '.OhhOOFFFFOOFhO.' : j === 10 ? '.OhOFFFFFFFFOhO.' : j === 11 ? '.OhhOOFOOFOOhhO.' : r);
-  const NURSE_JOY = NURSE.map((r, j) => j === 7 ? '.OhhOFFFFFFOFhO.' : j === 8 ? '.OhhFOFFFFOFFhO.' : j === 10 ? '.OhOFFOWWOFFOhO.' : r);
+  const NURSE_TIRED = NURSE.map((r, j) => j === 7 ? '.OhhFFFFFFFFFhO.' : j === 8 ? '.OhhOOFFFFOOFhO.' : j === 10 ? '..OFFFFFFFFFFO..' : j === 11 ? '...OOFFOOFFOO...' : r);
+  const NURSE_JOY = NURSE.map((r, j) => j === 7 ? '.OhhOFFFFFFOFhO.' : j === 8 ? '.OhhFOFFFFOFFhO.' : j === 10 ? '..OFFFOWWOFFFO..' : r);
   const HEAD = ['..OOOOOO..', '.OhhhhhhO.', 'OhhhhhhhhO', 'OFFFFFFFFO', 'OFKFFFFKFO', 'OFPFFFFPFO', '.OFFOOFFO.', '..OOOOOO..'];
   const HEAD_SLEEP = HEAD.map((r, j) => j === 4 ? 'OFOOFFOOFO' : j === 6 ? '.OFFFFFFO.' : r);
   const HEAD_PAIN = HEAD.map((r, j) => j === 3 ? 'OFOFFFFOFO' : j === 6 ? '.OFOOOOFO.' : r);
@@ -320,9 +322,15 @@
       { name: '없음', need: 0 }, { name: '병아리', need: 15000 }, { name: '알약 친구', need: 33000 }, { name: '고양이', need: 56000 },
       { name: '수액팩 친구', need: 82000 }, { name: '유령', need: 115000 }, { name: '반짝 별', need: 160000 }, { name: '미니 진상', need: 230000 },
     ],
+    // 병동 테마: 바닥 두 색, 벽, 이불
+    theme: [
+      { name: '기본 민트', f: ['fl', 'fl2'], w: 'wall', b: 'q', need: 0 }, { name: '핑크 소아', f: ['pk', 'pk2'], w: 'cream', b: 'u', need: 20000 },
+      { name: '나무 바닥', f: ['wd', 'wd2'], w: 'cream', b: 'v', need: 40000 }, { name: '바닷속', f: ['sea', 'sea2'], w: 'sky', b: 'S', need: 70000 },
+      { name: '우주 병동', f: ['n', 's'], w: 'N', b: 'L', need: 110000 }, { name: '황금 VIP', f: ['vip', 'vip2'], w: 'cream', b: 'Y', need: 170000 },
+    ],
   };
-  const LOOK_KEYS = ['scrub', 'hair', 'head', 'face', 'badge', 'pet'];
-  const LOOK_LABEL = { scrub: '근무복', hair: '머리색', head: '머리', face: '얼굴', badge: '소품', pet: '펫' };
+  const LOOK_KEYS = ['scrub', 'hair', 'head', 'face', 'badge', 'pet', 'theme'];
+  const LOOK_LABEL = { scrub: '근무복', hair: '머리색', head: '머리', face: '얼굴', badge: '소품', pet: '펫', theme: '병동' };
   const FURN = [
     { k: 'sofa', name: '소파', need: 0 }, { k: 'plant', name: '화분', need: 5000 }, { k: 'coffee', name: '커피머신', need: 10000 },
     { k: 'frame', name: '액자', need: 16000 }, { k: 'ramen', name: '컵라면 탑', need: 21000 }, { k: 'rug', name: '러그', need: 26000 },
@@ -336,7 +344,10 @@
   const NEED_SCALE = 3;
   LOOK_KEYS.forEach(k => LOOKS[k].forEach(x => { x.need *= NEED_SCALE; }));
   FURN.forEach(f => { f.need *= NEED_SCALE; });
-  const ITEM_COUNT = LOOK_KEYS.reduce((a, k) => a + LOOKS[k].length, 0) + FURN.length;
+  // 휴게실 벽지 (점수 그대로)
+  const WALLS = [{ name: '크림 줄무늬', need: 0 }, { name: '하늘 체크', need: 30000 }, { name: '분홍 하트', need: 90000 }, { name: '민트 물방울', need: 150000 }, { name: '밤하늘 별', need: 250000 }];
+  const allItems = () => LOOK_KEYS.flatMap(k => LOOKS[k]).concat(FURN, WALLS);
+  const ITEM_COUNT = LOOK_KEYS.reduce((a, k) => a + LOOKS[k].length, 0) + FURN.length + WALLS.length;
   function lookParse(s) {
     const a = String(s || '').split('.').map(n => parseInt(n, 10));
     const o = {};
@@ -344,13 +355,11 @@
     return o;
   }
   const lookStr = o => LOOK_KEYS.map(k => o[k] || 0).join('.');
-  function unlockedCount(total) {
-    return LOOK_KEYS.reduce((a, k) => a + LOOKS[k].filter(x => x.need <= total).length, 0) + FURN.filter(f => f.need <= total).length;
-  }
+  function unlockedCount(total) { return allItems().filter(x => x.need <= total).length; }
   function unlockedNames(from, to) {
     const out = [];
     LOOK_KEYS.forEach(k => LOOKS[k].forEach(x => { if (x.need > from && x.need <= to) out.push(x.name); }));
-    FURN.forEach(f => { if (f.need > from && f.need <= to) out.push(f.name); });
+    FURN.concat(WALLS).forEach(f => { if (f.need > from && f.need <= to) out.push(f.name); });
     return out;
   }
   const RIBBON = ['OO.OO', 'OPOPO', '.OPO.', 'OPOPO', 'OO.OO'];
@@ -446,13 +455,16 @@
   function miniHead(x, y, look) {
     const lk = typeof look === 'string' ? lookParse(look) : look;
     const hc = LOOKS.hair[lk.hair].c, sc = LOOKS.scrub[lk.scrub].q;
-    sprite(x, y, ['.OOOOO.', 'OaaaaaO', 'OaaFFaO', 'OFKFKFO', 'OaFFFaO', 'OabbbaO'], { map: { a: hc, b: sc } });
-    if (lk.head === 7) sprite(x + 1, y - 3, ['O.O.O', 'OYYYO', 'OOOOO']);
+    sprite(x, y - 1, ['..OOO..', '.OOOOO.', 'OaaaaaO', 'OaaFFaO', 'OFKFKFO', '.ObbbO.'], { map: { a: hc, b: sc } });
+    if (lk.head === 19) sprite(x + 1, y - 4, ['O.O.O', 'OYYYO', 'OOOOO']);
   }
 
   // ---------- 효과음 ----------
   let actx = null;
-  let soundOn = store.get('nn_sound', '1') !== '0';
+  // 소리: 2 = 음악+효과음, 1 = 효과음만, 0 = 끔
+  let soundLv = parseInt(store.get('nn_sound2', '2'), 10);
+  if (![0, 1, 2].includes(soundLv)) soundLv = 2;
+  let soundOn = soundLv > 0;
   function unlockAudio() {
     if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
     if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
@@ -468,6 +480,56 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(actx.destination);
     o.start(t); o.stop(t + dur + 0.02);
+  }
+  function beepAt(freq, t, dur, type, vol) {
+    if (!actx) return;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  // 배경음악: 8분음표 32칸 반복 (0 = 쉼). 근무 중에는 바쁜 시간대일수록 빨라짐
+  const midi = m => 440 * Math.pow(2, (m - 69) / 12);
+  const TRACKS = {
+    title: { bpm: 84, vol: 0.03, mel: [72, 0, 76, 0, 79, 0, 76, 0, 77, 0, 74, 0, 71, 0, 74, 0, 72, 0, 76, 0, 79, 0, 84, 0, 83, 0, 79, 0, 74, 0, 0, 0],
+      bass: [48, 0, 0, 0, 55, 0, 0, 0, 53, 0, 0, 0, 55, 0, 0, 0, 48, 0, 0, 0, 55, 0, 0, 0, 53, 0, 0, 0, 55, 0, 0, 0] },
+    play: { bpm: 104, vol: 0.028, mel: [72, 74, 76, 0, 79, 0, 76, 74, 72, 0, 67, 0, 72, 74, 76, 0, 77, 76, 74, 0, 72, 0, 74, 76, 74, 0, 71, 0, 67, 0, 0, 0],
+      bass: [48, 0, 55, 0, 48, 0, 55, 0, 45, 0, 52, 0, 45, 0, 52, 0, 41, 0, 48, 0, 41, 0, 48, 0, 43, 0, 50, 0, 43, 0, 47, 0] },
+    karen: { bpm: 168, vol: 0.03, mel: [69, 0, 69, 72, 0, 69, 75, 74, 69, 0, 69, 72, 0, 69, 77, 76, 69, 0, 69, 72, 0, 69, 75, 74, 72, 71, 69, 0, 68, 0, 69, 0],
+      bass: [45, 45, 0, 45, 45, 0, 45, 0, 45, 45, 0, 45, 45, 0, 44, 0, 45, 45, 0, 45, 45, 0, 45, 0, 41, 0, 43, 0, 44, 0, 45, 0] },
+    round: { bpm: 132, vol: 0.028, mel: [76, 0, 79, 0, 81, 0, 79, 76, 74, 0, 76, 0, 79, 0, 0, 0, 76, 0, 79, 0, 84, 0, 83, 81, 79, 0, 76, 0, 74, 0, 72, 0],
+      bass: [48, 0, 52, 0, 55, 0, 52, 0, 50, 0, 53, 0, 57, 0, 53, 0, 48, 0, 52, 0, 55, 0, 52, 0, 43, 0, 47, 0, 50, 0, 47, 0] },
+  };
+  const Music = {
+    cur: null, step: 0, next: 0,
+    want() {
+      if (soundLv < 2 || document.hidden) return null;
+      if (G.state === 'play') return G.paused ? null : G.event ? G.event.type : 'play';
+      return G.state === 'over' ? null : 'title';
+    },
+    tick() {
+      if (!actx || actx.state !== 'running') return;
+      const w = this.want();
+      if (w !== this.cur) { this.cur = w; this.step = 0; this.next = actx.currentTime + 0.08; }
+      if (!w) return;
+      const tr = TRACKS[w];
+      const bpm = w === 'play' ? tr.bpm + Math.round(44 * Math.max(0, busy())) : tr.bpm;
+      const sp = 60 / bpm / 2;
+      if (this.next < actx.currentTime) this.next = actx.currentTime + 0.02;
+      while (this.next < actx.currentTime + 0.25) {
+        const i = this.step % tr.mel.length;
+        if (tr.mel[i]) beepAt(midi(tr.mel[i]), this.next, sp * 0.9, 'triangle', tr.vol);
+        if (tr.bass[i]) beepAt(midi(tr.bass[i]), this.next, sp * 1.7, 'square', tr.vol * 0.45);
+        this.next += sp; this.step++;
+      }
+    },
+  };
+  setInterval(() => { try { Music.tick(); } catch (e) { /* 무시 */ } }, 60);
+  function cycleSound() {
+    soundLv = soundLv === 2 ? 1 : soundLv === 1 ? 0 : 2;
+    soundOn = soundLv > 0;
+    store.set('nn_sound2', String(soundLv));
+    SFX.tap();
   }
   const SFX = {
     tap: () => beep(660, 0.05, 'square', 0.04),
@@ -535,9 +597,39 @@
       IDB.set('id', { uid: id.uid, secret: id.secret, code: id.code });
     },
   };
+  // ---------- 기록·업적 ----------
+  const REC_KEYS = ['shifts', 'success', 'faints', 'calls', 'karens', 'demands', 'coffee', 'wrong', 'perfect', 'maxCombo', 'dailies'];
+  const newRec = () => Object.fromEntries(REC_KEYS.map(k => [k, 0]));
+  const ACH = [
+    { name: '첫 근무', desc: '근무를 한 번 해요', k: 'shifts', n: 1 },
+    { name: '첫 퇴근', desc: '아침 7시까지 버텨요', k: 'success', n: 1 },
+    { name: '프로 퇴근러', desc: '퇴근 10번', k: 'success', n: 10 },
+    { name: '퇴근의 달인', desc: '퇴근 50번', k: 'success', n: 50 },
+    { name: '기절도 경험', desc: '체력 0으로 쓰러지기', k: 'faints', n: 1 },
+    { name: '콜벨 100개', desc: '콜벨 누적 100개', k: 'calls', n: 100 },
+    { name: '콜벨 1,000개', desc: '콜벨 누적 1,000개', k: 'calls', n: 1000 },
+    { name: '콜벨 만렙', desc: '콜벨 누적 10,000개', k: 'calls', n: 10000 },
+    { name: '첫 진상 퇴치', desc: '진상을 한 번 날려요', k: 'karens', n: 1 },
+    { name: '진상 퇴치반', desc: '진상 20명 퇴치', k: 'karens', n: 20 },
+    { name: '진상 저승사자', desc: '진상 100명 퇴치', k: 'karens', n: 100 },
+    { name: '단호박', desc: '무리한 요구 50번 거절', k: 'demands', n: 50 },
+    { name: '카페인 수혈', desc: '커피 50잔', k: 'coffee', n: 50 },
+    { name: '이거 말고요 장인', desc: '틀린 물건 30번', k: 'wrong', n: 30 },
+    { name: '콤보 30', desc: '한 판에 30콤보', k: 'maxCombo', n: 30 },
+    { name: '무결점 근무', desc: '한 판에 100콤보', k: 'maxCombo', n: 100 },
+    { name: '정리왕', desc: '라운딩 6장 모두 맞히기', k: 'perfect', n: 1 },
+    { name: '라운딩 마스터', desc: '라운딩 완벽 20번', k: 'perfect', n: 20 },
+    { name: '3만 점', desc: '한 판 30,000점', k: 'best', n: 30000 },
+    { name: '8만 점', desc: '한 판 80,000점', k: 'best', n: 80000 },
+    { name: '개근상', desc: '오늘의 근무 7번', k: 'dailies', n: 7 },
+    { name: '패셔니스타', desc: '꾸미기 50개 해금', k: 'fashion', n: 50 },
+  ];
+  ACH.forEach(a => { a.v = () => a.k === 'best' ? G.best : a.k === 'fashion' ? unlockedCount(G.total) : (G.rec[a.k] || 0); });
+  const achDone = a => a.v() >= a.n;
+
   // 이름·병동·꾸미기·누적 점수도 두 군데에 저장
   function saveProfile() {
-    const p = { nick: G.nick, ward: G.ward, look: lookStr(G.look), total: G.total, best: G.best };
+    const p = { nick: G.nick, ward: G.ward, look: lookStr(G.look), total: G.total, best: G.best, rec: G.rec, lounge: { wall: G.lounge.wall, off: G.lounge.off } };
     store.set('nn_profile', JSON.stringify(p));
     IDB.set('profile', p);
   }
@@ -550,6 +642,15 @@
     if (tot > G.total) G.total = Math.floor(tot);
     const b = Number(p.best) || 0;
     if (b > G.best) G.best = Math.floor(b);
+    // 기록은 항목마다 큰 값으로 합침
+    let rec = p.rec;
+    if (typeof rec === 'string') { try { rec = JSON.parse(rec); } catch (e) { rec = null; } }
+    if (rec && typeof rec === 'object') REC_KEYS.forEach(k => { const v = Math.floor(Number(rec[k]) || 0); if (v > (G.rec[k] || 0)) G.rec[k] = v; });
+    if (p.lounge && typeof p.lounge === 'object') {
+      const w = Number(p.lounge.wall);
+      if (Number.isInteger(w) && w >= 0 && w < WALLS.length) G.lounge.wall = w;
+      if (Array.isArray(p.lounge.off)) G.lounge.off = p.lounge.off.filter(k => FURN.some(f => f.k === k));
+    }
   }
 
   // ---------- 랭킹 (Supabase 공용 → 없으면 이 기기) ----------
@@ -572,6 +673,7 @@
     return {
       id: d.id ? String(d.id) : null,
       nick: String(d.nick || '익명').slice(0, 8),
+      stats: typeof d.stats === 'string' ? d.stats : '',
       best: Math.floor(best),
       total: Math.max(0, Math.floor(Number(d.total) || 0)),
       look: lookParse(d.look),
@@ -589,12 +691,12 @@
       if (!this.net) return;
       const timer = setTimeout(() => { if (this.status === 'loading') this.status = 'slow'; }, 10000);
       try {
-        const data = await netCall('GET', '/rest/v1/nn_scores?select=id,nick,ward,look,best,total,day,dayBest:day_best&order=best.desc,at.asc&limit=300');
+        const data = await netCall('GET', '/rest/v1/nn_scores?select=id,nick,ward,look,best,total,stats,day,dayBest:day_best&order=best.desc,at.asc&limit=300');
         this.rows = (Array.isArray(data) ? data : []).map(cleanRow).filter(Boolean);
         this.status = 'ok';
         // 내 줄이 있으면 이름·누적 점수 등을 되살림 (이 기기 저장소가 지워졌을 때)
         const mine = this.mine();
-        if (mine) { applyProfile({ nick: mine.nick, ward: mine.ward, look: lookStr(mine.look), total: mine.total, best: mine.best }); saveProfile(); }
+        if (mine) { applyProfile({ nick: mine.nick, ward: mine.ward, look: lookStr(mine.look), total: mine.total, best: mine.best, rec: mine.stats }); saveProfile(); }
       } catch (e) { this.status = 'error'; } finally { clearTimeout(timer); }
     },
     all() { return this.net ? this.rows : this.local; },
@@ -631,6 +733,7 @@
         p_id: Ident.uid, p_secret: Ident.secret, p_code: Ident.code, p_nick: G.nick, p_ward: G.ward, p_look: lookStr(G.look),
         p_best: rec && rec.mode === 'normal' ? rec.score : 0, p_total: G.total,
         p_day: rec && rec.mode === 'daily' ? rec.day : null, p_day_best: rec && rec.mode === 'daily' ? rec.score : 0,
+        p_stats: JSON.stringify(G.rec),
       });
       await this.refresh();
     },
@@ -654,6 +757,14 @@
       if (!this.net) return;
       try { await this.write(null); } catch (e) { /* 무시 */ }
     },
+    // 같은 이름이 서버에 있는지 (내 줄 제외). 연결 실패면 null
+    async nickTaken(v) {
+      if (!this.net) return false;
+      try {
+        const d = await netCall('GET', '/rest/v1/nn_scores?select=id&nick=ilike.' + encodeURIComponent(v.replace(/[%_*]/g, '')) + '&limit=5');
+        return Array.isArray(d) && d.some(r => r.id !== Ident.uid);
+      } catch (e) { return null; }
+    },
     async restore(code) {
       if (!this.net) return 'offline';
       try {
@@ -661,8 +772,8 @@
         const r = Array.isArray(rows) ? rows[0] : null;
         if (!r || !validId({ uid: r.id, secret: r.secret, code: r.code })) return 'notfound';
         Ident.set({ uid: r.id, secret: r.secret, code: r.code });
-        G.nick = ''; G.total = 0; G.best = 0;
-        applyProfile({ nick: r.nick, ward: r.ward, look: r.look, total: r.total, best: r.best }, true);
+        G.nick = ''; G.total = 0; G.best = 0; G.rec = newRec();
+        applyProfile({ nick: r.nick, ward: r.ward, look: r.look, total: r.total, best: r.best, rec: r.stats }, true);
         saveProfile();
         await this.refresh();
         return 'ok';
@@ -699,6 +810,7 @@
   const G = {
     state: 'title', t: 0, st: 0, mode: 'normal',
     nick: store.get('nn_nick', ''), ward: '', look: lookParse(''), total: 0, best: 0,
+    rec: newRec(), lounge: { wall: 0, off: [], wallSel: 0 }, achSel: -1,
     rankTab: 'me', tutPage: 0, loungeSel: -1,
   };
   try { applyProfile(JSON.parse(store.get('nn_profile', 'null'))); } catch (e) { /* 무시 */ }
@@ -852,12 +964,20 @@
   function endShift(success) {
     G.state = 'over'; G.st = 0; G.success = success; G.event = null;
     if (success) { G.bonus = Math.round(G.stamina) * 10 + 1000; G.score += G.bonus; SFX.clear(); } else { G.bonus = 0; SFX.over(); }
+    const achBefore = ACH.filter(achDone).map(a => a.name);
+    const r = G.rec;
+    r.shifts++; if (success) r.success++; else r.faints++;
+    r.calls += G.stats.calls; r.karens += G.stats.karens; r.demands += G.stats.demands; r.coffee += G.stats.coffee;
+    r.wrong += G.stats.wrong; r.perfect += G.stats.perfect || 0; r.maxCombo = Math.max(r.maxCombo, G.maxCombo);
+    if (G.mode === 'daily') r.dailies++;
     const before = G.total;
     G.total += G.score;
     const names = unlockedNames(before, G.total);
     G.unlockMsg = names.length ? (names.length <= 2 ? names.join(', ') + ' 해금!' : '꾸미기 ' + names.length + '개 해금!') : '';
     G.newBest = G.mode === 'normal' && G.score > G.best;
     if (G.mode === 'normal' && G.score > G.best) G.best = G.score;
+    const achNew = ACH.filter(a => achDone(a) && !achBefore.includes(a.name)).map(a => a.name);
+    G.achMsg = achNew.length ? '업적 달성! ' + achNew[0] + (achNew.length > 1 ? ' 외 ' + (achNew.length - 1) + '개' : '') : '';
     saveProfile();
     G.overMsg = { code: 'pending' };
     Rank.submit(G.mode, G.score).then(r => { G.overMsg = r; });
@@ -870,7 +990,8 @@
     const w = WALL.getContext('2d');
     for (let y = 0; y < H; y += 8) for (let x = 0; x < W; x += 8) { w.fillStyle = ((x + y) / 8) % 2 ? CSS.cream : CSS.cream2; w.fillRect(x, y, 8, 8); }
   }
-  function floor(y0, y1 = H) { for (let y = y0; y < y1; y += 8) for (let x = 0; x < W; x += 8) rect(x, y, 8, Math.min(8, y1 - y), ((x + y) / 8) % 2 ? 'fl' : 'fl2'); }
+  function floor(y0, y1 = H, a = 'fl', b = 'fl2') { for (let y = y0; y < y1; y += 8) for (let x = 0; x < W; x += 8) rect(x, y, 8, Math.min(8, y1 - y), ((x + y) / 8) % 2 ? a : b); }
+  const theme = () => LOOKS.theme[G.look.theme] || LOOKS.theme[0];
   function bar(x, y, w, ratio, col) {
     rrect(x, y, w, 7, 'cream3');
     const tw = Math.max(5, Math.round(w * Math.max(0, Math.min(1, ratio))));
@@ -910,7 +1031,7 @@
     const mood = G.moodT[i] > 0 ? G.moodK[i] : c ? 'pain' : (i + (G.elapsed / 9 | 0)) % 3 ? 'sleep' : 'calm';
     const head = mood === 'sleep' ? HEAD_SLEEP : mood === 'pain' ? HEAD_PAIN : mood === 'happy' ? HEAD_HAPPY : HEAD;
     sprite(x + 12, y + 7, head, { map: { h: HAIRS[i] } });
-    rrect(x + 1, y + 15, 32, 14, 'q', 'O');
+    rrect(x + 1, y + 15, 32, 14, theme().b, 'O');
     rect(x + 2, y + 16, 30, 2, 'W');
     ptext(ROOMS[i], x + 17, y + 20, 's', 'B', { edge: null, align: 'c' });
     if (mood === 'sleep' && !c) sprite(x + 25, y - 1 - ((G.t * 2 | 0) % 2), ZZ);
@@ -920,8 +1041,9 @@
   function drawPlay() {
     const sh = G.shake > 0 ? Math.round(Math.sin(G.t * 80) * 2) : 0;
     ctx.save(); ctx.translate(sh, 0);
-    rect(0, 0, W, H, 'wall');
-    floor(40);
+    const th = theme();
+    rect(0, 0, W, H, th.w);
+    floor(40, H, th.f[0], th.f[1]);
     const fever = G.fever > 0;
     // 위: 시각, 점수, 체력
     rrect(3, 3, 50, 15, 'N', 'O');
@@ -935,8 +1057,11 @@
     rrect(P_BTN.x, P_BTN.y, P_BTN.w, P_BTN.h, 'W', 'O', 'cream3');
     rect(P_BTN.x + 8, P_BTN.y + 3, 2, 6, 'O'); rect(P_BTN.x + 12, P_BTN.y + 3, 2, 6, 'O');
     // 창문 + 병동 이름
-    rrect(6, 32, 30, 14, 'N', 'O'); px(14, 36, 'W'); px(26, 39, 'X'); px(20, 35, 'W');
-    rrect(92, 32, 30, 14, 'N', 'O'); sprite(110, 35, MOON);
+    // 창밖: 밤 → 새벽 → 아침
+    const pr = prog(), sky = pr < 0.6 ? 'N' : pr < 0.8 ? 's' : pr < 0.92 ? 'sun' : 'sun2';
+    rrect(6, 32, 30, 14, sky, 'O'); rrect(92, 32, 30, 14, sky, 'O');
+    if (pr < 0.8) { px(14, 36, 'W'); px(26, 39, 'X'); px(20, 35, 'W'); sprite(110, 35, MOON); }
+    else rrect(104, 37 - Math.round((pr - 0.8) * 20), 8, 8, 'X', 'Y');
     if (G.noteT > 0) pill(G.noteText, 64, 34, G.noteCol, G.noteCol === 'Y' || G.noteCol === 'G' ? 'O' : 'W');
     else if (fever) pill('집중 모드 x2', 64, 34, rb(2), 'O');
     else if (G.combo >= 2) pill('콤보 x' + G.combo, 64, 34, 'Y', 'O');
@@ -1043,7 +1168,7 @@
     else { ev.wrongT = 0.3; fx(64, 60, '앗!', 'R', 'b'); SFX.wrong(); }
     ev.idx++;
     if (ev.idx >= ev.cards.length) {
-      if (ev.ok === ev.cards.length) { G.score += 500; SFX.big(); }
+      if (ev.ok === ev.cards.length) { G.score += 500; G.stats.perfect = (G.stats.perfect || 0) + 1; SFX.big(); }
       ev.result = 'done'; ev.resultT = 1.4;
     }
   }
@@ -1054,8 +1179,10 @@
   const T_RANK = { x: 6, y: 192, w: 37, h: 14 };
   const T_LOUNGE = { x: 45, y: 192, w: 38, h: 14 };
   const T_DRESS = { x: 85, y: 192, w: 37, h: 14 };
-  const T_NAME = { x: 6, y: 209, w: 56, h: 13 };
-  const T_CHAT = { x: 66, y: 209, w: 56, h: 13 };
+  const T_NAME = { x: 6, y: 209, w: 37, h: 13 };
+  const T_REC = { x: 45, y: 209, w: 38, h: 13 };
+  const T_CHAT = { x: 85, y: 209, w: 37, h: 13 };
+  const T_APP = { x: 50, y: 3, w: 40, h: 13 };
   const T_HELP = { x: 3, y: 3, w: 44, h: 13 };
   const T_SOUND = { x: 110, y: 2, w: 16, h: 12 };
   // 게임 이름
@@ -1084,6 +1211,8 @@
     }
     floor(122);
     sprite(114, 4, soundOn ? SPEAKER : SPEAKER_OFF);
+    if (soundLv === 2) sprite(106, 3, ['..OO', '..OO', '..O.', 'OOO.', 'OOO.']);
+    if (!isStandalone()) { rrect(T_APP.x, T_APP.y, T_APP.w, T_APP.h, 'Y', 'O', 'y'); ptext('앱 설치', T_APP.x + T_APP.w / 2, T_APP.y + 3, 's', 'O', { edge: null, align: 'c' }); }
     rrect(T_HELP.x, T_HELP.y, T_HELP.w, T_HELP.h, 'W', 'O', 'cream3');
     ptext('튜토리얼', T_HELP.x + T_HELP.w / 2, T_HELP.y + 3, 's', 'O', { edge: null, align: 'c' });
     drawLogo(TITLE);
@@ -1099,6 +1228,7 @@
     button(T_LOUNGE, 'M', 'm', '휴게실', 'm', 'W', 'm');
     button(T_DRESS, 'L', 'l', '꾸미기', 'm', 'W', 'l');
     button(T_NAME, 'W', 'cream3', '이름·병동', 's', 'O');
+    button(T_REC, 'Y', 'y', '기록', 's', 'O');
     if (Chat.enabled()) {
       button(T_CHAT, 'W', 'cream3', '채팅', 's', 'O');
       const n = Chat.unread();
@@ -1128,10 +1258,12 @@
       return;
     }
     nurse(56, 30 + (Math.sin(G.t * 3) > 0.6 ? -1 : 0), G.look, { blink: blinkNow() });
-    ptext('이름을 알려 주세요! (5글자)', 64, 58, 's', 'O', { edge: null, align: 'c' });
+    const dupNow = G.nameMsg === 'dup' || (nickEl.value.trim() && Rank.rows.some(r => r.nick.toLowerCase() === nickEl.value.trim().toLowerCase() && r.id !== Ident.uid));
+    ptext(dupNow ? '이미 있는 이름이에요!' : '이름을 알려 주세요! (5글자)', 64, 58, 's', dupNow ? 'p' : 'O', { edge: null, align: 'c' });
     const v = nickEl.value.trim();
-    const dup = v && Rank.rows.some(r => r.nick === v && r.id !== Ident.uid);
-    ptext(dup ? '같은 이름이 이미 있어요' : '랭킹·채팅에 나와요', 64, 70, 's', dup ? 'p' : 'l', { edge: null, align: 'c' });
+    const dup = G.nameMsg === 'dup' || (v && Rank.rows.some(r => r.nick.toLowerCase() === v.toLowerCase() && r.id !== Ident.uid));
+    const nm = G.nameMsg === 'checking' ? ['확인 중..', 'l'] : dup ? ['내 이름이면 「코드로 불러오기」', 'p'] : ['랭킹·채팅에 나와요 (중복 불가)', 'l'];
+    ptext(nm[0], 64, 70, 's', nm[1], { edge: null, align: 'c' });
     rrect(NICK_BOX.x - 2, NICK_BOX.y - 2, NICK_BOX.w + 4, NICK_BOX.h + 4, 'cream', 'O');
     rrect(N_TL.x, N_TL.y, N_TL.w, N_TL.h, 'Y', 'O'); sprite(N_TL.x + 5, N_TL.y + 3, ARROW_L);
     rrect(N_TR.x, N_TR.y, N_TR.w, N_TR.h, 'Y', 'O'); sprite(N_TR.x + 4, N_TR.y + 3, ARROW_R);
@@ -1146,7 +1278,7 @@
     button(N_CANCEL, 'cream3', 'o', '취소', 'b', 'o');
   }
   function openName(next) {
-    G.state = 'name'; G.st = 0; G.nameNext = next; G.nameMode = 'nick'; G.codeMsg = '';
+    G.state = 'name'; G.st = 0; G.nameNext = next; G.nameMode = 'nick'; G.codeMsg = ''; G.nameMsg = '';
     G.wardSel = G.ward;
     nickEl.maxLength = 5; nickEl.placeholder = ''; nickEl.value = G.nick;
     nickEl.hidden = false;
@@ -1166,15 +1298,28 @@
     G.codeMsg = r;
     if (r === 'ok') setTimeout(() => { if (G.state === 'name') { nickEl.hidden = true; G.state = 'title'; G.st = 0; } }, 900);
   }
-  function closeName(save) {
-    if (G.state !== 'name') return;
+  async function closeName(save) {
+    if (G.state !== 'name' || G.nameMsg === 'checking') return;
     if (G.nameMode === 'code') { if (save) tryRestore(); else codeMode(false); return; }
     if (save) {
       let v = Array.from(nickEl.value.replace(/\s+/g, ' ').trim()).slice(0, 5).join('');
       if (!v) v = '간호' + (100 + Math.floor(Math.random() * 900));
+      // 같은 이름은 못 씀: 서버에 먼저 물어보고, 저장할 때 서버 규칙으로 한 번 더 막힘
+      if (Rank.net && v !== G.nick) {
+        G.nameMsg = 'checking';
+        const taken = await Rank.nickTaken(v);
+        if (taken) { G.nameMsg = 'dup'; return; }
+      }
+      const old = G.nick;
       G.nick = v; G.ward = G.wardSel;
+      if (Rank.net) {
+        G.nameMsg = 'checking';
+        try { await Rank.write(null); }
+        catch (e) { if (String(e && e.message).indexOf('409') >= 0) { G.nick = old; G.nameMsg = 'dup'; return; } }
+      }
+      G.nameMsg = '';
       saveProfile();
-      Rank.updateProfile();
+      Rank.saveLocal(null);
     }
     nickEl.hidden = true; nickEl.blur();
     if (save && G.nameNext === 'play') newGame(G.pendingMode);
@@ -1226,6 +1371,7 @@
     rows.forEach(([k, v], i) => { ptext(k, 49, 116 + i * 9, 's', 'o', { edge: null }); ptext(v, 119, 116 + i * 9, 's', i === 0 ? 'p' : i === 5 ? 'm' : 'O', { edge: null, align: 'r' }); });
     if (G.newBest) pill('최고 기록!', 64, 70, 'Y', 'O', 'm', 'y');
     if (overText()) ptext(overText(), 64, 88, 's', 'O', { edge: 'W', align: 'c' });
+    if (G.achMsg) ptext(fitText(G.achMsg, 120, 's').t, 64, 98, 's', 'p', { edge: 'W', align: 'c' });
     if (G.unlockMsg) ptext(fitText(G.unlockMsg, 120, 's').t, 64, 178, 's', 'p', { edge: 'W', align: 'c' });
     button(O_AGAIN, 'Y', 'y', '한 번 더', 'm', 'O');
     button(O_LOUNGE, 'M', 'm', '휴게실', 'm', 'W', 'm');
@@ -1279,40 +1425,57 @@
   function goRank(back, tab) { G.back = back; G.state = 'rank'; G.st = 0; G.rankTab = tab || (G.mode === 'daily' && back === 'over' ? 'day' : 'me'); Rank.refresh(); }
   function goBack() { G.state = G.back === 'over' ? 'over' : 'title'; G.st = 1; }
 
-  // ---------- 화면: 꾸미기 ----------
-  const D_ROWS = LOOK_KEYS.map((k, i) => ({ k, y: 91 + i * 18 }));
-  const dArrowL = y => ({ x: 36, y, w: 14, h: 15 }), dArrowR = y => ({ x: 110, y, w: 14, h: 15 });
+  // ---------- 화면: 꾸미기 (잠긴 것도 입혀 보기) ----------
+  const D_ROWS = LOOK_KEYS.map((k, i) => ({ k, y: 84 + i * 16 }));
+  const dArrowL = y => ({ x: 36, y, w: 14, h: 14 }), dArrowR = y => ({ x: 110, y, w: 14, h: 14 });
   const D_BACK = { x: 34, y: 209, w: 60, h: 13 };
+  function openDress(back) { G.back = back; G.state = 'dress'; G.dressPrev = Object.assign({}, G.look); G.dressLocked = null; }
   function drawDress() {
     ctx.drawImage(WALL, 0, 0);
     header('꾸미기', 'L', 'l');
-    rrect(26, 28, 76, 50, 'W', 'O', 'cream3');
-    nurse(40, 32, G.look, { blink: blinkNow(), scale: 2 });
-    ptext('누적 ' + fmtShort(G.total) + '점 · 해금 ' + unlockedCount(G.total) + '/' + ITEM_COUNT, 64, 80, 's', 'O', { edge: 'W', align: 'c' });
+    const pv = G.dressPrev || G.look;
+    const pth = LOOKS.theme[pv.theme];
+    rrect(26, 27, 76, 47, pth.w, 'O', 'cream3');
+    ctx.save(); ctx.beginPath(); ctx.rect(27, 28, 74, 45); ctx.clip();
+    floor(62, 73, pth.f[0], pth.f[1]);
+    nurse(40, 28, pv, { blink: blinkNow(), scale: 2 });
+    ctx.restore();
+    ptext('누적 ' + fmtShort(G.total) + '점 · 해금 ' + unlockedCount(G.total) + '/' + ITEM_COUNT, 64, 75, 's', 'O', { edge: 'W', align: 'c' });
+    let lockedName = null;
     D_ROWS.forEach(({ k, y }) => {
-      const list = LOOKS[k], cur = list[G.look[k]];
+      const list = LOOKS[k], cur = list[pv[k]];
+      const locked = cur.need > G.total;
+      if (locked && !lockedName) lockedName = cur;
       ptext(LOOK_LABEL[k], 4, y, 's', 'O', { edge: 'W' });
-      ptext(list.filter(x => x.need <= G.total).length + '/' + list.length, 4, y + 8, 's', 'o', { edge: 'W' });
+      ptext(list.filter(x => x.need <= G.total).length + '/' + list.length, 4, y + 7, 's', 'o', { edge: 'W' });
       const l = dArrowL(y), r = dArrowR(y);
-      rrect(l.x, l.y, l.w, l.h, 'Y', 'O', 'y'); sprite(l.x + 5, l.y + 4, ARROW_L);
-      rrect(r.x, r.y, r.w, r.h, 'Y', 'O', 'y'); sprite(r.x + 5, r.y + 4, ARROW_R);
-      rrect(52, y, 56, 15, 'W', 'O');
-      const f = textW(cur.name, 'm') <= 52 ? 'm' : 's';
-      ptext(cur.name, 80, y + (f === 'm' ? 2 : 3), f, 'O', { edge: null, align: 'c' });
+      rrect(l.x, l.y, l.w, l.h, 'Y', 'O'); sprite(l.x + 5, l.y + 3, ARROW_L);
+      rrect(r.x, r.y, r.w, r.h, 'Y', 'O'); sprite(r.x + 5, r.y + 3, ARROW_R);
+      rrect(52, y, 56, 14, locked ? 'cream3' : 'W', 'O');
+      if (locked) sprite(54, y + 4, LOCK);
+      else if (k === 'theme') { rect(54, y + 3, 4, 8, cur.f[0]); rect(58, y + 3, 3, 8, cur.b); }
+      const f = textW(cur.name, 'm') <= (locked ? 44 : 52) ? 'm' : 's';
+      ptext(cur.name, locked || k === 'theme' ? 83 : 80, y + (f === 'm' ? 1 : 3), f, locked ? 'o' : 'O', { edge: null, align: 'c' });
     });
-    const next = LOOK_KEYS.flatMap(k => LOOKS[k]).concat(FURN).filter(x => x.need > G.total).sort((a, b) => a.need - b.need)[0];
-    if (next) { sprite(5, 199, LOCK); ptext(fitText('다음 해금: ' + next.name + ' (' + fmtShort(next.need) + '점)', 112, 's').t, 12, 198, 's', 'l', { edge: 'W' }); }
+    if (lockedName) {
+      rrect(4, 196, 120, 11, 'P', 'O');
+      ptext(fitText('미리 보기: ' + lockedName.name + ' ' + fmtShort(lockedName.need) + '점에 해금', 116, 's').t, 64, 197, 's', 'W', { edge: null, align: 'c' });
+    } else {
+      const next = allItems().filter(x => x.need > G.total).sort((a, b) => a.need - b.need)[0];
+      if (next) { sprite(5, 198, LOCK); ptext(fitText('다음 해금: ' + next.name + ' (' + fmtShort(next.need) + '점)', 112, 's').t, 12, 197, 's', 'l', { edge: 'W' }); }
+    }
     button(D_BACK, 'P', 'p', '돌아가기', 'm', 'W', 'p');
   }
+  // 잠긴 것도 고를 수 있음(미리 보기). 실제로 입는 것은 해금된 것만
   function cycleLook(k, d) {
     const list = LOOKS[k];
-    const open = list.map((x, i) => i).filter(i => list[i].need <= G.total);
-    const pos = Math.max(0, open.indexOf(G.look[k]));
-    G.look[k] = open[(pos + d + open.length) % open.length];
-    saveProfile();
+    const pv = G.dressPrev;
+    pv[k] = (pv[k] + d + list.length) % list.length;
+    if (list[pv[k]].need <= G.total) { G.look[k] = pv[k]; saveProfile(); }
   }
+  function closeDress() { G.dressPrev = null; Rank.updateProfile(); goBack(); }
 
-  // ---------- 화면: 휴게실 ----------
+  // ---------- 화면: 휴게실 (가구 놓기·치우기, 벽지) ----------
   const CAT = ['O...O.....', 'OO.OO.....', 'OZZZO...O.', 'OZOZO...O.', 'OZZZOOOOO.', '.OZZZZZZO.', '.OZOOOOZO.'];
   const TROPHY = ['OOOOOOO', 'OYYYYYO', 'OYWYYYO', '.OYYYO.', '..OYO..', '.OOOOO.', '.OyyyO.', '.OOOOO.'];
   const RAMEN = ['.OOOOO.', 'OWRWRWO', '.OWWWO.'];
@@ -1331,7 +1494,7 @@
       case 'tv': rrect(x + 1, y + 3, 13, 9, 'N', 'O'); rect(x + 3, y + 5, 9, 5, 'S'); break;
       case 'clock': rrect(x + 2, y + 2, 11, 11, 'W', 'O'); rect(x + 7, y + 4, 1, 4, 'O'); rect(x + 7, y + 7, 3, 1, 'R'); break;
       case 'fish': rrect(x + 1, y + 3, 13, 10, 'S', 'O'); sprite(x + 5, y + 6, ['.YY.Y', 'YOYYY', '.YY.Y']); break;
-      case 'drinks': for (let i = 0; i < 3; i++) sprite(x + 2 + i * 4, y + 6, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); sprite(x + 4, y + 1, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); sprite(x + 8, y + 1, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); break;
+      case 'drinks': sprite(x + 2, y + 6, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); sprite(x + 6, y + 6, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); sprite(x + 10, y + 6, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); sprite(x + 4, y + 1, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); sprite(x + 8, y + 1, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']); break;
       case 'cat': sprite(x + 2, y + 4, CAT); break;
       case 'pole': sprite(x + 5, y + 1, ['OOOOO', '..O..', 'OSSO.', 'OSSO.', '.OO..', '..O..', '..O..', '..O..', '..O..', '..O..', '.OOO.', 'OO.OO']); break;
       case 'mic': sprite(x + 5, y + 2, ['.OOO.', 'OgggO', 'OgggO', '.OOO.', '..O..', '..O..', '..O..', '..O..', '.OOO.']); break;
@@ -1340,15 +1503,27 @@
       case 'trophy': sprite(x + 4, y + 3, TROPHY); break;
     }
   }
-  const L_SLOTS = FURN.map((f, i) => ({ x: 5 + (i % 7) * 17, y: 140 + Math.floor(i / 7) * 18, w: 16, h: 16 }));
+  const L_SLOTS = FURN.map((f, i) => ({ x: 5 + (i % 7) * 17, y: 143 + Math.floor(i / 7) * 18, w: 16, h: 16 }));
+  const LW_L = { x: 30, y: 128, w: 13, h: 12 }, LW_R = { x: 109, y: 128, w: 13, h: 12 };
+  function drawWallpaper(w) {
+    const base = ['cream', 'wall', 'pk', 'fl', 'N'][w];
+    rect(0, 26, W, 92, base);
+    for (let y = 26; y < 118; y += 8) for (let x = 0; x < W; x += 8) {
+      const i = (x + y) / 8;
+      if (w === 0 && x % 12 === 0) rect(x, y, 6, 8, 'cream2');
+      else if (w === 1 && i % 2) rect(x, y, 8, 8, 'wall2');
+      else if (w === 2 && x % 16 === 0 && (y - 26) % 16 === 0) sprite(x + 4, y + 4, ['P.P', 'PPP', '.P.']);
+      else if (w === 3 && x % 16 === 8 && (y - 26) % 16 === 8) { rect(x + 3, y + 3, 2, 2, 'v'); }
+      else if (w === 4 && (x * 7 + y * 3) % 5 === 0) px(x + 3, y + 4, ((x + y + (G.t * 2 | 0)) % 3) ? 'W' : 'X');
+    }
+    if (w === 0) for (let x = 0; x < W; x += 12) rect(x, 26, 6, 92, 'cream2');
+  }
   function drawLounge() {
     ctx.drawImage(WALL, 0, 0);
-    rect(0, 0, W, 122, 'cream');
-    for (let x = 0; x < W; x += 12) rect(x, 26, 6, 92, 'cream2');
+    drawWallpaper(G.lounge.wall);
     rect(0, 116, W, 4, 'Z'); floor(120, 126);
     header('휴게실', 'M', 'm');
-    const has = k => FURN.find(f => f.k === k).need <= G.total;
-    // 벽
+    const has = k => { const f = FURN.find(o => o.k === k); return f.need <= G.total && !G.lounge.off.includes(k); };
     rrect(6, 30, 30, 24, 'sun2', 'O'); rect(20, 31, 2, 22, 'O'); rect(7, 41, 28, 2, 'O');
     if (has('frame')) { rrect(40, 30, 18, 15, 'W', 'O'); sprite(45, 34, HEART.slice(0, 6).map(r => r.slice(0, 9))); }
     if (has('resign')) { rrect(62, 30, 16, 20, 'W', 'O'); rect(65, 34, 10, 1, 'g'); rect(65, 37, 10, 1, 'g'); rect(65, 40, 7, 1, 'g'); rrect(70, 43, 6, 5, 'R', 'r'); }
@@ -1358,14 +1533,12 @@
     if (has('hammock')) sprite(6, 56, ['O..........................O', '.O........................O.', '..OPPPPPPPPPPPPPPPPPPPPPPO..', '...OPPPPPPPPPPPPPPPPPPPPO...', '....OOOOOOOOOOOOOOOOOOOO....']);
     if (has('trophy')) sprite(40, 48, TROPHY);
     if (has('fish')) { rrect(50, 52, 24, 16, 'S', 'O'); sprite(56 + Math.round(Math.sin(G.t) * 5), 57, ['.YY.Y', 'YOYYY', '.YY.Y']); }
-    // 바닥 뒤쪽
     if (has('fridge')) { rrect(102, 74, 20, 42, 'G', 'O'); rect(103, 90, 18, 1, 'O'); rect(119, 78, 1, 6, 'O'); rect(119, 94, 1, 8, 'O'); }
     if (has('coffee')) { rrect(84, 90, 16, 24, 'g', 'O'); rrect(86, 92, 12, 6, 'N', 'O'); sprite(87, 104, ['OOOO', 'OzzO', '.OO.']); }
-    if (has('pole')) sprite(76, 78, ['OOOOOOO', '...O...', '.OSSO..', '.OSSO..', '..OO...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '...O...', '..OOO..', '.OO.OO.']);
+    if (has('pole')) sprite(76, 78, ['OOOOOOO', '...O...', '.OSSO..', '.OSSO..', '..OO...'].concat(Array(13).fill('...O...'), ['..OOO..', '.OO.OO.']));
     if (has('massage')) { rrect(2, 74, 10, 16, 'l', 'O'); rrect(0, 88, 14, 26, 'L', 'O'); }
     if (has('rug')) { rrect(14, 108, 64, 10, 'L', 'O'); rect(18, 112, 56, 1, 'W'); }
-    // 소파 + 쉬는 간호사
-    rrect(16, 78, 54, 18, 'P', 'O'); rrect(14, 90, 58, 20, 'u', 'O'); rect(16, 94, 54, 2, 'W');
+    if (has('sofa')) { rrect(16, 78, 54, 18, 'P', 'O'); rrect(14, 90, 58, 20, 'u', 'O'); rect(16, 94, 54, 2, 'W'); }
     nurse(34, 72, G.look, { blink: true });
     sprite(52, 66, ZZ);
     if (has('cat')) sprite(58, 84, CAT);
@@ -1373,18 +1546,119 @@
     if (has('ramen')) for (let i = 0; i < 4; i++) sprite(4, 104 - i * 3, RAMEN);
     if (has('drinks')) for (let i = 0; i < 3; i++) sprite(100 + i * 4, 112, ['OOO', 'OYO', 'ORO', 'OYO', 'OOO']);
     if (has('bag')) { rrect(16, 112, 30, 8, 'M', 'O'); rrect(16, 112, 9, 8, 'W', 'O'); }
-    if (has('mic')) sprite(4, 82, ['.OOO.', 'OgggO', 'OgggO', '.OOO.', '..O..', '..O..', '..O..', '..O..', '..O..', '..O..', '..O..', '..O..', '..O..', '..O..', '..O..', '.OOO.']);
-    // 가구 목록
-    rrect(3, 126, 122, 78, 'W', 'O', 'cream3');
-    ptext('가구 ' + FURN.filter(f => f.need <= G.total).length + '/' + FURN.length + ' · 눌러서 이름 보기', 64, 129, 's', 'o', { edge: null, align: 'c' });
+    if (has('mic')) sprite(4, 82, ['.OOO.', 'OgggO', 'OgggO', '.OOO.'].concat(Array(11).fill('..O..'), ['.OOO.']));
+    // 아래: 벽지 고르기 + 가구 목록 (눌러서 놓기·치우기)
+    rrect(3, 126, 122, 79, 'W', 'O', 'cream3');
+    ptext('벽지', 6, 129, 's', 'O', { edge: null });
+    const wl = WALLS[G.lounge.wallSel];
+    rrect(LW_L.x, LW_L.y, LW_L.w, LW_L.h, 'Y', 'O'); sprite(LW_L.x + 5, LW_L.y + 2, ARROW_L);
+    rrect(LW_R.x, LW_R.y, LW_R.w, LW_R.h, 'Y', 'O'); sprite(LW_R.x + 4, LW_R.y + 2, ARROW_R);
+    rrect(45, 128, 62, 12, wl.need <= G.total ? 'cream' : 'cream3', 'O');
+    if (wl.need > G.total) sprite(47, 131, LOCK);
+    ptext(wl.name, 77, 129, 's', wl.need <= G.total ? 'O' : 'o', { edge: null, align: 'c' });
     FURN.forEach((f, i) => {
-      const b = L_SLOTS[i], ok = f.need <= G.total;
-      rrect(b.x, b.y, b.w, b.h, G.loungeSel === i ? 'Y' : ok ? 'cream' : 'cream3', 'O');
-      if (ok) furnIcon(f.k, b.x, b.y); else sprite(b.x + 5, b.y + 5, LOCK);
+      const b = L_SLOTS[i], ok = f.need <= G.total, off = G.lounge.off.includes(f.k);
+      rrect(b.x, b.y, b.w, b.h, G.loungeSel === i ? 'Y' : ok ? (off ? 'cream3' : 'cream') : 'cream3', 'O');
+      if (ok) { furnIcon(f.k, b.x, b.y); if (off) { ctx.fillStyle = 'rgba(255,246,232,0.6)'; ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2); } }
+      else sprite(b.x + 5, b.y + 5, LOCK);
     });
     const sel = FURN[G.loungeSel];
-    if (sel) ptext(sel.name + (sel.need <= G.total ? ' (해금)' : ' · ' + fmtShort(sel.need) + '점에 해금'), 64, 194, 's', 'O', { edge: null, align: 'c' });
+    let info;
+    if (wl.need > G.total) info = '벽지 「' + wl.name + '」 ' + fmtShort(wl.need) + '점에 해금';
+    else if (sel) info = sel.need > G.total ? sel.name + ' · ' + fmtShort(sel.need) + '점에 해금' : sel.name + (G.lounge.off.includes(sel.k) ? ' (치움)' : ' (놓음)');
+    else info = '가구 ' + FURN.filter(f => f.need <= G.total).length + '/' + FURN.length + ' · 눌러서 놓기·치우기';
+    ptext(fitText(info, 118, 's').t, 64, 196, 's', 'o', { edge: null, align: 'c' });
     button(R_BACK, 'P', 'p', '돌아가기', 'b', 'W', 'p');
+  }
+  function openLounge(back) { G.back = back; G.state = 'lounge'; G.loungeSel = -1; G.lounge.wallSel = G.lounge.wall; }
+  function loungeTap(p) {
+    const si = L_SLOTS.findIndex(b => inBox(p, b));
+    if (si >= 0) {
+      const f = FURN[si];
+      SFX.tap(); G.loungeSel = si;
+      if (f.need <= G.total) {
+        const off = G.lounge.off;
+        if (off.includes(f.k)) G.lounge.off = off.filter(k => k !== f.k); else G.lounge.off = off.concat(f.k);
+        saveProfile();
+      }
+      return;
+    }
+    const d = inBox(p, LW_L) ? -1 : inBox(p, LW_R) ? 1 : 0;
+    if (d) {
+      SFX.tap();
+      G.lounge.wallSel = (G.lounge.wallSel + d + WALLS.length) % WALLS.length;
+      if (WALLS[G.lounge.wallSel].need <= G.total) { G.lounge.wall = G.lounge.wallSel; saveProfile(); }
+      return;
+    }
+    if (inBox(p, R_BACK)) { SFX.tap(); G.loungeSel = -1; goBack(); }
+  }
+
+  // ---------- 화면: 기록·업적 ----------
+  const MEDAL = ['.O...O.', 'OSO.OSO', '.OSOSO.', '..OOO..', '.OYYYO.', 'OYYWYYO', 'OYYYYYO', '.OYYYO.', '..OOO..'];
+  const MEDAL_OFF = MEDAL.map(r => r.replace(/[SYW]/g, 'g'));
+  const A_CELLS = ACH.map((a, i) => ({ x: 6 + (i % 4) * 29, y: 68 + Math.floor(i / 4) * 20, w: 27, h: 18 }));
+  function drawRec() {
+    ctx.drawImage(WALL, 0, 0);
+    header('기록·업적', 'Y', 'y');
+    rrect(4, 28, 120, 37, 'W', 'O', 'cream3');
+    const r = G.rec;
+    const st = [['근무', r.shifts + '회'], ['퇴근', r.success + '회'], ['끈 콜벨', fmtShort(r.calls)], ['진상 퇴치', fmtShort(r.karens)], ['최대 콤보', String(r.maxCombo)], ['최고점', fmtShort(G.best)]];
+    st.forEach(([k, v], i) => {
+      const x = i % 2 ? 66 : 8, y = 31 + Math.floor(i / 2) * 11;
+      ptext(k, x, y, 's', 'o', { edge: null }); ptext(v, x + 54, y, 's', 'O', { edge: null, align: 'r' });
+    });
+    const doneN = ACH.filter(achDone).length;
+    ACH.forEach((a, i) => {
+      const b = A_CELLS[i], done = achDone(a);
+      rrect(b.x, b.y, b.w, b.h, G.achSel === i ? 'Y' : done ? 'cream' : 'cream3', 'O');
+      sprite(b.x + 10, b.y + 4, done ? MEDAL : MEDAL_OFF);
+      if (!done) { const pr = Math.min(1, a.v() / a.n); rect(b.x + 3, b.y + 14, Math.round((b.w - 6) * pr), 1, 'm'); }
+    });
+    const a = ACH[G.achSel];
+    rrect(4, 188, 120, 18, 'W', 'O');
+    if (a) {
+      ptext(a.name + ' (' + fmtShort(Math.min(a.v(), a.n)) + '/' + fmtShort(a.n) + ')', 64, 189, 's', achDone(a) ? 'p' : 'O', { edge: null, align: 'c' });
+      ptext(a.desc, 64, 197, 's', 'o', { edge: null, align: 'c' });
+    } else {
+      ptext('업적 ' + doneN + '/' + ACH.length, 64, 189, 's', 'O', { edge: null, align: 'c' });
+      ptext('메달을 눌러 내용 보기', 64, 197, 's', 'o', { edge: null, align: 'c' });
+    }
+    button({ x: 34, y: 208, w: 60, h: 14 }, 'P', 'p', '돌아가기', 'm', 'W', 'p');
+  }
+
+  // 앱 아이콘 그림 (위쪽 128x128만 사용)
+  function drawIcon() {
+    rect(0, 0, W, H, 'N');
+    for (let i = 0; i < 14; i++) px((i * 37) % 120 + 4, (i * 23) % 120 + 4, i % 3 ? 'W' : 'X');
+    rrect(8, 8, 112, 112, 'n', 'n');
+    floor(96, 128, 'fl', 'fl2');
+    nurse(24, 10, lookParse('0.0.5.0.0.0.0'), { scale: 5, mood: 'joy', noPet: true });
+    rrect(92, 14, 26, 22, 'W', 'O');
+    ptext('!', 105, 15, 'b', 'R', { scale: 1, edge: null, align: 'c' });
+    sprite(97, 35, ['OOOO', '.OO.']);
+  }
+
+  // ---------- 화면: 홈 화면에 추가 안내 ----------
+  function drawInstall() {
+    ctx.drawImage(WALL, 0, 0);
+    header('홈 화면에 추가', 'S', 'B');
+    rrect(4, 28, 120, 172, 'W', 'O', 'cream3');
+    nurse(56, 32, G.look, { blink: blinkNow() });
+    ptext('앱처럼 바로 열 수 있어요', 64, 58, 's', 'O', { edge: null, align: 'c' });
+    const lines = [
+      ['아이폰 (사파리)', 'B'], ['1. 아래 공유 버튼 누르기', 'O'], ['2. 「홈 화면에 추가」', 'O'],
+      ['안드로이드 (크롬)', 'B'], ['1. 오른쪽 위 ⋮ 메뉴', 'O'], ['2. 「홈 화면에 추가」·「앱 설치」', 'O'],
+      ['카카오톡에서 열었다면', 'p'], ['⋮ → 다른 브라우저로 열기', 'O'],
+    ];
+    lines.forEach(([t, c], i) => ptext(t, 10, 72 + i * 15 + (i >= 3 ? 4 : 0) + (i >= 6 ? 4 : 0), 's', c, { edge: null }));
+    button(R_BACK, 'P', 'p', '돌아가기', 'b', 'W', 'p');
+  }
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+  const isStandalone = () => { try { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } };
+  function askInstall() {
+    if (installEvt) { const ev = installEvt; installEvt = null; ev.prompt(); ev.userChoice && ev.userChoice.catch(() => {}); return; }
+    G.back = 'title'; G.state = 'install';
   }
 
   // ---------- 화면: 튜토리얼 ----------
@@ -1576,13 +1850,15 @@
   function tap(p) {
     switch (G.state) {
       case 'title':
-        if (inBox(p, T_SOUND)) { soundOn = !soundOn; store.set('nn_sound', soundOn ? '1' : '0'); SFX.tap(); return; }
+        if (inBox(p, { x: 104, y: 0, w: 24, h: 16 })) { cycleSound(); return; }
+        if (!isStandalone() && inBox(p, T_APP)) { SFX.tap(); askInstall(); return; }
         if (inBox(p, T_HELP)) { SFX.tap(); openTut(null); return; }
         if (inBox(p, T_START)) { SFX.tap(); startGame('normal'); }
         else if (inBox(p, T_DAILY)) { SFX.tap(); startGame('daily'); }
         else if (inBox(p, T_RANK)) { SFX.tap(); goRank('title'); }
-        else if (inBox(p, T_LOUNGE)) { SFX.tap(); G.back = 'title'; G.state = 'lounge'; }
-        else if (inBox(p, T_DRESS)) { SFX.tap(); G.back = 'title'; G.state = 'dress'; }
+        else if (inBox(p, T_LOUNGE)) { SFX.tap(); openLounge('title'); }
+        else if (inBox(p, T_DRESS)) { SFX.tap(); openDress('title'); }
+        else if (inBox(p, T_REC)) { SFX.tap(); G.back = 'title'; G.state = 'rec'; G.achSel = -1; }
         else if (inBox(p, T_NAME)) { SFX.tap(); openName('title'); }
         else if (Chat.enabled() && inBox(p, T_CHAT)) { SFX.tap(); openChat(); }
         break;
@@ -1596,7 +1872,7 @@
       case 'over':
         if (G.st < 0.6) return;
         if (inBox(p, O_AGAIN)) { SFX.tap(); newGame(G.mode); }
-        else if (inBox(p, O_LOUNGE)) { SFX.tap(); G.back = 'over'; G.state = 'lounge'; }
+        else if (inBox(p, O_LOUNGE)) { SFX.tap(); openLounge('over'); }
         else if (inBox(p, O_RANK)) { SFX.tap(); goRank('over'); }
         else if (inBox(p, O_HOME)) { SFX.tap(); G.state = 'title'; G.st = 0; }
         break;
@@ -1605,17 +1881,19 @@
         if (t) { SFX.tap(); G.rankTab = t.k; } else if (inBox(p, R_BACK)) { SFX.tap(); goBack(); }
         break;
       }
-      case 'lounge': {
-        const si = L_SLOTS.findIndex(b => inBox(p, b));
-        if (si >= 0) { SFX.tap(); G.loungeSel = si; } else if (inBox(p, R_BACK)) { SFX.tap(); G.loungeSel = -1; goBack(); }
+      case 'lounge': loungeTap(p); break;
+      case 'rec': {
+        const ai = A_CELLS.findIndex(b => inBox(p, b));
+        if (ai >= 0) { SFX.tap(); G.achSel = ai; } else if (inBox(p, { x: 34, y: 208, w: 60, h: 14 })) { SFX.tap(); goBack(); }
         break;
       }
+      case 'install': if (inBox(p, R_BACK)) { SFX.tap(); goBack(); } break;
       case 'dress': {
         for (const { k, y } of D_ROWS) {
           if (inBox(p, dArrowL(y))) { SFX.tap(); cycleLook(k, -1); return; }
           if (inBox(p, dArrowR(y))) { SFX.tap(); cycleLook(k, 1); return; }
         }
-        if (inBox(p, D_BACK)) { SFX.tap(); Rank.updateProfile(); goBack(); }
+        if (inBox(p, D_BACK)) { SFX.tap(); closeDress(); }
         break;
       }
       case 'tut':
@@ -1653,6 +1931,7 @@
     if (Math.abs(p.y - down.y) >= 6 || down.drag) { down.drag = true; G.chatScroll = (G.chatScroll || 0) + (p.y - down.ly); down.ly = p.y; }
   });
   cvs.addEventListener('wheel', e => { if (G.state !== 'chat') return; e.preventDefault(); G.chatScroll = (G.chatScroll || 0) - e.deltaY / scale; }, { passive: false });
+  nickEl.addEventListener('input', () => { if (G.nameMsg === 'dup') G.nameMsg = ''; });
   nickEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); closeName(true); } else if (e.key === 'Escape') closeName(false); });
   window.addEventListener('keydown', e => {
     if (G.state === 'chat') { if (e.key === 'Enter') { e.preventDefault(); Chat.send(); } else if (e.key === 'Escape') closeChat(); return; }
@@ -1680,11 +1959,10 @@
       e.preventDefault();
       if (G.state === 'title') startGame('normal');
       else if (G.state === 'over' && G.st > 0.6) newGame(G.mode);
-      else if (G.state === 'rank' || G.state === 'lounge') goBack();
-      else if (G.state === 'dress') { Rank.updateProfile(); goBack(); }
-    } else if (k === 'Escape' && ['rank', 'lounge', 'dress'].includes(G.state)) {
-      if (G.state === 'dress') Rank.updateProfile();
-      goBack();
+      else if (['rank', 'lounge', 'rec', 'install'].includes(G.state)) goBack();
+      else if (G.state === 'dress') closeDress();
+    } else if (k === 'Escape' && ['rank', 'lounge', 'dress', 'rec', 'install'].includes(G.state)) {
+      if (G.state === 'dress') closeDress(); else goBack();
     }
   });
 
@@ -1715,7 +1993,7 @@
   // ---------- 루프 ----------
   function bandColor() {
     if (G.state === 'title') return ['N', 'fl2'];
-    if (G.state === 'play') return G.event ? (G.event.type === 'karen' ? ['R', 'R'] : ['wall', 'fl2']) : ['wall', 'fl2'];
+    if (G.state === 'play') return G.event ? (G.event.type === 'karen' ? ['R', 'R'] : ['wall', 'fl2']) : [theme().w, theme().f[1]];
     if (G.state === 'over') return [G.success ? 'sun2' : 'n', 'fl2'];
     if (G.state === 'lounge') return ['cream', 'fl2'];
     return [null, null];
@@ -1739,6 +2017,9 @@
     else if (G.state === 'dress') drawDress();
     else if (G.state === 'lounge') drawLounge();
     else if (G.state === 'tut') drawTut();
+    else if (G.state === 'rec') drawRec();
+    else if (G.state === 'icon') drawIcon();
+    else if (G.state === 'install') drawInstall();
     else if (G.state === 'chat') drawChat();
   }
   let last = 0;
@@ -1776,8 +2057,13 @@
     }
     else if (shot === 'name') openName('title');
     else if (shot === 'code') { openName('title'); codeMode(true); nickEl.value = 'K7QM-2XHP'; G.codeMsg = 'notfound'; }
-    else if (shot === 'dress') G.state = 'dress';
-    else if (shot === 'lounge') G.state = 'lounge';
+    else if (shot === 'dress') { openDress('title'); G.dressPrev.head = 17; }
+    else if (shot === 'lounge') { openLounge('title'); G.lounge.off = ['tv']; G.loungeSel = 10; }
+    else if (shot === 'rec') { G.rec = Object.assign(newRec(), { shifts: 23, success: 18, faints: 5, calls: 2140, karens: 31, demands: 60, coffee: 41, wrong: 12, perfect: 7, maxCombo: 64, dailies: 3 }); G.best = 52300; G.state = 'rec'; G.achSel = 9; }
+    else if (shot === 'install') G.state = 'install';
+    else if (shot === 'icon') G.state = 'icon';
+    else if (shot === 'dup') { Rank.rows = [{ id: 'x', nick: '콜벨헌터', look: lookParse('') }]; openName('title'); nickEl.value = '콜벨헌터'; }
+    else if (shot === 'theme') { playAt(() => { G.look.theme = 4; G.elapsed = SHIFT * 0.85; G.evIdx = 4; }); }
     else if (/^tut\d+$/.test(shot)) { G.state = 'tut'; G.tutPage = Math.min(TUT.length, +shot.slice(3)) - 1; }
     else if (shot === 'chat' || shot === 'chattitle') {
       Chat.fake = true; Ident.uid = 'me'; Chat.seen = 1; Chat.status = 'ok';
