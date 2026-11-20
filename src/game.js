@@ -10,6 +10,7 @@
   const wrapEl = document.getElementById('wrap');
   const nickEl = document.getElementById('nick');
   const chatEl = document.getElementById('chatin');
+  const codeEl = document.getElementById('codeout');
   ctx.imageSmoothingEnabled = false;
 
   // ---------- 저장 (브라우저 저장소는 실패할 수 있음) ----------
@@ -915,6 +916,7 @@
 
   function update(dt) {
     G.t += dt; G.st += dt;
+    if (G.copiedT > 0) G.copiedT -= dt;
     if (G.state === 'play') updatePlay(dt);
   }
   function updatePlay(dt) {
@@ -1240,6 +1242,7 @@
   const NICK_BOX = { x: 16, y: 84, w: 96, h: 16 };
   const N_TL = { x: 10, y: 106, w: 13, h: 14 }, N_TR = { x: 105, y: 106, w: 13, h: 14 };
   const N_CODE = { x: 20, y: 160, w: 88, h: 13 };
+  const CODE_BOX = { x: 20, y: 138, w: 64, h: 14 }, N_COPY = { x: 88, y: 138, w: 24, h: 14 };
   const N_OK = { x: 16, y: 180, w: 46, h: 16 }, N_CANCEL = { x: 66, y: 180, w: 46, h: 16 };
   function drawName() {
     ctx.drawImage(WALL, 0, 0);
@@ -1262,7 +1265,7 @@
     ptext(dupNow ? '이미 있는 이름이에요!' : '이름을 알려 주세요! (5글자)', 64, 58, 's', dupNow ? 'p' : 'O', { edge: null, align: 'c' });
     const v = nickEl.value.trim();
     const dup = G.nameMsg === 'dup' || (v && Rank.rows.some(r => r.nick.toLowerCase() === v.toLowerCase() && r.id !== Ident.uid));
-    const nm = G.nameMsg === 'checking' ? ['확인 중..', 'l'] : dup ? ['내 이름이면 「코드로 불러오기」', 'p'] : ['랭킹·채팅에 나와요 (중복 불가)', 'l'];
+    const nm = G.nameMsg === 'checking' ? ['확인 중..', 'l'] : dup ? ['내 이름이면 「코드로 불러오기」', 'p'] : ['랭킹·채팅에 나와요', 'l'];
     ptext(nm[0], 64, 70, 's', nm[1], { edge: null, align: 'c' });
     rrect(NICK_BOX.x - 2, NICK_BOX.y - 2, NICK_BOX.w + 4, NICK_BOX.h + 4, 'cream', 'O');
     rrect(N_TL.x, N_TL.y, N_TL.w, N_TL.h, 'Y', 'O'); sprite(N_TL.x + 5, N_TL.y + 3, ARROW_L);
@@ -1271,8 +1274,10 @@
     ptext(fitText(wardName(G.wardSel), 76).t, 64, 108, 'm', 'O', { edge: null, align: 'c' });
     // 복구 코드
     rrect(14, 126, 100, 30, 'cream', 'O');
-    ptext('내 복구 코드 (적어 두세요)', 64, 129, 's', 'o', { edge: null, align: 'c' });
-    ptext(showCode(Ident.code), 64, 140, 'm', 'B', { edge: null, align: 'c' });
+    ptext('내 복구 코드 (복사해 두세요)', 64, 129, 's', 'o', { edge: null, align: 'c' });
+    rrect(CODE_BOX.x - 1, CODE_BOX.y - 1, CODE_BOX.w + 2, CODE_BOX.h + 2, 'W', 'g');
+    button(N_COPY, G.copiedT > 0 ? 'M' : 'S', G.copiedT > 0 ? 'm' : 'B', G.copiedT > 0 ? '됨!' : '복사', 's', 'W');
+    if (G.copiedT > 0) ptext('복사됨! 메모장 등에 붙여 두세요', 64, 176, 's', 'm', { edge: 'W', align: 'c' });
     button(N_CODE, 'W', 'cream3', '코드로 불러오기', 's', 'O');
     button(N_OK, 'M', 'm', '확인', 'b', 'W', 'm');
     button(N_CANCEL, 'cream3', 'o', '취소', 'b', 'o');
@@ -1282,10 +1287,23 @@
     G.wardSel = G.ward;
     nickEl.maxLength = 5; nickEl.placeholder = ''; nickEl.value = G.nick;
     nickEl.hidden = false;
+    nickEl.classList.remove('code');
+    codeEl.value = showCode(Ident.code); codeEl.hidden = false; G.copiedT = 0;
     layout();
     setTimeout(() => { try { nickEl.focus(); nickEl.select(); } catch (e) { /* 무시 */ } }, 30);
   }
+  async function copyCode() {
+    const t = showCode(Ident.code);
+    let ok = false;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(t); ok = true; } } catch (e) { ok = false; }
+    if (!ok) { try { codeEl.focus(); codeEl.select(); codeEl.setSelectionRange(0, t.length); ok = document.execCommand('copy'); } catch (e) { ok = false; } }
+    if (!ok) { try { codeEl.focus(); codeEl.select(); } catch (e) { /* 무시 */ } }
+    G.copiedT = ok ? 2.5 : 0;
+    SFX.tap();
+  }
   function codeMode(on) {
+    nickEl.classList.toggle('code', on);
+    codeEl.hidden = on;
     G.nameMode = on ? 'code' : 'nick'; G.codeMsg = '';
     nickEl.maxLength = on ? 9 : 5; nickEl.placeholder = on ? 'ABCD-EFGH' : ''; nickEl.value = on ? '' : G.nick;
     setTimeout(() => { try { nickEl.focus(); } catch (e) { /* 무시 */ } }, 30);
@@ -1296,7 +1314,7 @@
     G.codeMsg = 'busy';
     const r = await Rank.restore(code);
     G.codeMsg = r;
-    if (r === 'ok') setTimeout(() => { if (G.state === 'name') { nickEl.hidden = true; G.state = 'title'; G.st = 0; } }, 900);
+    if (r === 'ok') setTimeout(() => { if (G.state === 'name') { nickEl.hidden = true; codeEl.hidden = true; G.state = 'title'; G.st = 0; } }, 900);
   }
   async function closeName(save) {
     if (G.state !== 'name' || G.nameMsg === 'checking') return;
@@ -1321,7 +1339,7 @@
       saveProfile();
       Rank.saveLocal(null);
     }
-    nickEl.hidden = true; nickEl.blur();
+    nickEl.hidden = true; nickEl.blur(); codeEl.hidden = true;
     if (save && G.nameNext === 'play') newGame(G.pendingMode);
     else if (save && G.nameNext === 'chat') openChat();
     else { G.state = 'title'; G.st = 0; }
@@ -1868,13 +1886,18 @@
         else if (G.nameMode !== 'code' && inBox(p, N_TL)) { SFX.tap(); cycleWard(-1); }
         else if (G.nameMode !== 'code' && inBox(p, N_TR)) { SFX.tap(); cycleWard(1); }
         else if (G.nameMode !== 'code' && inBox(p, N_CODE)) { SFX.tap(); codeMode(true); }
+        else if (G.nameMode !== 'code' && inBox(p, N_COPY)) copyCode();
         break;
       case 'over':
         if (G.st < 0.6) return;
         if (inBox(p, O_AGAIN)) { SFX.tap(); newGame(G.mode); }
         else if (inBox(p, O_LOUNGE)) { SFX.tap(); openLounge('over'); }
         else if (inBox(p, O_RANK)) { SFX.tap(); goRank('over'); }
-        else if (inBox(p, O_HOME)) { SFX.tap(); G.state = 'title'; G.st = 0; }
+        else if (inBox(p, O_HOME)) {
+          SFX.tap(); G.state = 'title'; G.st = 0;
+          // 첫 근무를 마치고 처음 화면으로 갈 때 한 번: 설치 창(안드로이드) 또는 홈 화면 추가 안내(아이폰)
+          if (!isStandalone() && !store.get('nn_install_asked', '')) { store.set('nn_install_asked', '1'); askInstall(); }
+        }
         break;
       case 'rank': {
         const t = R_TABS.find(t => inBox(p, t));
@@ -1983,10 +2006,14 @@
     if (cvs.height !== HV * RES) { cvs.height = HV * RES; ctx.imageSmoothingEnabled = false; }
     const b = NICK_BOX;
     Object.assign(nickEl.style, { left: b.x * s + 'px', top: (b.y + OFF) * s + 'px', width: b.w * s + 'px', height: b.h * s + 'px', fontSize: Math.round(10 * s) + 'px' });
+    const cb = CODE_BOX;
+    Object.assign(codeEl.style, { left: cb.x * s + 'px', top: (cb.y + OFF) * s + 'px', width: cb.w * s + 'px', height: cb.h * s + 'px', fontSize: Math.round(9 * s) + 'px' });
     const c = C_BOX;
     Object.assign(chatEl.style, { left: (c.x + 2) * s + 'px', top: (c.y + 2 + OFF) * s + 'px', width: (c.w - 4) * s + 'px', height: (c.h - 4) * s + 'px', fontSize: Math.round(10 * s) + 'px', paddingLeft: Math.round(2 * s) + 'px' });
   }
   window.addEventListener('resize', layout);
+  // 서비스 워커 (홈 화면 설치 조건, 오프라인일 때 마지막 버전 사용)
+  try { if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) { /* 무시 */ }
   // 다른 앱으로 넘어가면 자동으로 일시정지
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play' && !G.paused) G.paused = true; });
 

@@ -44,7 +44,7 @@ body {
   outline: none;
 }
 #game:focus-visible { box-shadow: 0 0 0 3px var(--focus); }
-#nick, #chatin {
+#nick, #chatin, #codeout {
   position: absolute;
   box-sizing: border-box;
   margin: 0;
@@ -60,13 +60,17 @@ body {
   user-select: text;
 }
 #nick:focus-visible, #chatin:focus-visible { background: #fff; }
-#nick[hidden], #chatin[hidden] { display: none; }
+#nick[hidden], #chatin[hidden], #codeout[hidden] { display: none; }
+/* 복구 코드는 도트 글씨 대신 또렷한 일반 글꼴 (0과 O 구분) */
+#codeout, #nick.code { font-family: Consolas, 'Roboto Mono', ui-monospace, 'Courier New', monospace; font-weight: 700; letter-spacing: 0.06em; }
+#codeout { color: #3a6fb8; background: transparent; }
 #chatin { text-align: left; }
 </style>
 <div id="wrap">
   <div id="stage">
     <canvas id="game" width="128" height="224" tabindex="0" aria-label="쌤! 여기요! 게임 화면. 숫자 1~6으로 침대, 스페이스로 연타"></canvas>
     <input id="nick" type="text" maxlength="5" autocomplete="off" spellcheck="false" enterkeyhint="done" aria-label="플레이어 이름" hidden>
+    <input id="codeout" type="text" readonly aria-label="내 복구 코드" hidden>
     <input id="chatin" type="text" maxlength="40" autocomplete="off" spellcheck="false" enterkeyhint="send" aria-label="채팅 메시지" placeholder="메시지 입력" hidden>
   </div>
 </div>
