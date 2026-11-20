@@ -69,6 +69,9 @@
     sun: [255, 196, 140], sun2: [255, 228, 180], X: [255, 240, 150],
     pk: [255, 234, 240], pk2: [250, 214, 226], wd: [226, 190, 146], wd2: [210, 172, 126],
     sea: [196, 230, 248], sea2: [172, 214, 240], sky: [200, 232, 255], vip: [255, 236, 170], vip2: [246, 218, 140],
+    // 정교한 꾸미기용 밝은·어두운 색
+    1: [255, 246, 196], 2: [200, 140, 56], 3: [255, 206, 218], 4: [204, 236, 252], 5: [196, 242, 218],
+    6: [255, 158, 82], 7: [232, 222, 255], 8: [246, 248, 252], 9: [150, 40, 62],
   };
   const CSS = {};
   for (const k in PAL) CSS[k] = `rgb(${PAL[k].join(',')})`;
@@ -430,6 +433,183 @@
     () => { sprite(0, 0, ['.OOOO.', 'OLlLlO', 'OFFFFO', 'OKFFKO', 'OFrrFO', '.OOOO.']); sprite(6, -3, ['O.O', '.O.']); },
   ];
 
+  // ---------- 정교한 꾸미기 (2배 해상도로 직접 그림) ----------
+  // 좌표는 간호사 2배 판 기준 (눈 10·20, y14 / 입 y21 / 몸 y24부터 / 머리 위 y0)
+  // d.outline()은 지금까지 그린 모양 둘레에 1픽셀 테두리를 두르고, 그 뒤에 그리는 것은 무늬
+  function hdLayer(fn, hc) {
+    const cw = HD_W * 2, ch = HD_H * 2;
+    const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    const x = c.getContext('2d');
+    const X = HD_OX * 2, Y = HD_OY * 2;
+    let ox = X, oy = Y;
+    const col = v => CSS[v] || v;
+    const d = {
+      hc,
+      at(a, b) { ox = X + a; oy = Y + b; },
+      r(a, b, w, h, v) { x.fillStyle = col(v); x.fillRect(Math.round(ox + a), Math.round(oy + b), w, h); },
+      p(a, b, v) { d.r(a, b, 1, 1, v); },
+      e(cx, cy, rx, ry, v, ymax = 1e9) {
+        for (let j = Math.floor(cy - ry); j <= Math.ceil(cy + ry); j++) {
+          if (j > ymax) break;
+          const t = (j + 0.5 - cy) / ry;
+          if (Math.abs(t) > 1) continue;
+          const hw = rx * Math.sqrt(1 - t * t), a = Math.round(cx - hw), b = Math.round(cx + hw);
+          if (b > a) d.r(a, j, b - a, 1, v);
+        }
+      },
+      ring(cx, cy, rx, ry, th, v) {
+        for (let j = Math.floor(cy - ry); j <= Math.ceil(cy + ry); j++) for (let i = Math.floor(cx - rx); i <= Math.ceil(cx + rx); i++) {
+          const u = (i + 0.5 - cx), w = (j + 0.5 - cy);
+          if ((u / rx) ** 2 + (w / ry) ** 2 <= 1 && (u / (rx - th)) ** 2 + (w / (ry - th)) ** 2 > 1) d.p(i, j, v);
+        }
+      },
+      rows(a, b, rows, map) { x.drawImage(spr(rows, map), Math.round(ox + a), Math.round(oy + b)); },
+      line(x0, y0, x1, y1, v, w = 1) {
+        const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+        for (let i = 0; i <= n; i++) d.r(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), w, w, v);
+      },
+      cap(x0, y0, x1, y1, rad, v) {
+        const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)) || 1;
+        for (let i = 0; i <= n; i++) d.e(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, rad, rad, v);
+      },
+      outline(v = 'O') {
+        const im = x.getImageData(0, 0, cw, ch), a = im.data;
+        const on = (i, j) => i >= 0 && j >= 0 && i < cw && j < ch && a[(j * cw + i) * 4 + 3] > 0;
+        const edge = [];
+        for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++)
+          if (!on(i, j) && (on(i - 1, j) || on(i + 1, j) || on(i, j - 1) || on(i, j + 1))) edge.push(i, j);
+        x.fillStyle = col(v);
+        for (let k = 0; k < edge.length; k += 2) x.fillRect(edge[k], edge[k + 1], 1, 1);
+      },
+    };
+    fn(d);
+    return c;
+  }
+  const mirror = rows => rows.map(r => r.split('').reverse().join(''));
+  const HD_HEAD = [
+    null,
+    d => { d.r(7, 7, 18, 2, 'P'); d.r(5, 9, 22, 2, 'P'); d.outline(); d.r(9, 7, 6, 1, '3'); d.r(5, 10, 22, 1, 'p'); },                    // 머리띠
+    d => { d.e(22, 4, 3.5, 3, 'P'); d.e(30, 4, 3.5, 3, 'P'); d.r(23, 6, 2, 4, 'P'); d.r(27, 6, 2, 4, 'P'); d.r(24, 2, 4, 4, 'p'); d.outline();
+      d.r(20, 3, 2, 1, '3'); d.r(28, 3, 2, 1, '3'); d.p(22, 5, 'p'); d.p(30, 5, 'p'); d.r(25, 3, 2, 2, 'P'); },                          // 리본
+    d => { [[25, 8], [25, 14], [22, 11], [28, 11]].forEach(([a, b]) => d.e(a, b, 2.2, 2.2, 'P')); d.outline();
+      [[25, 8], [25, 14], [22, 11], [28, 11]].forEach(([a, b]) => d.p(a - 1, b - 1, '3')); d.e(25, 11, 1.6, 1.6, 'Y'); d.p(24, 10, '1'); },  // 꽃핀
+    d => { d.r(15, -6, 2, 8, 'm'); d.e(11.5, -7, 4, 2.2, 'M'); d.e(20.5, -7, 4, 2.2, 'M'); d.outline();
+      d.r(9, -7, 5, 1, 'm'); d.r(19, -7, 5, 1, 'm'); d.r(10, -9, 2, 1, '5'); d.r(20, -9, 2, 1, '5'); },                                  // 새싹
+    d => { d.r(9, -6, 14, 2, 'W'); d.r(7, -4, 18, 3, 'W'); d.r(5, -1, 22, 3, 'W'); d.r(4, 2, 24, 2, 'W'); d.outline();
+      d.r(15, -5, 2, 6, 'R'); d.r(13, -3, 6, 2, 'R'); d.r(5, 2, 22, 1, 'G'); d.r(21, -4, 3, 3, '8'); d.r(23, -1, 3, 2, 'G'); d.r(9, -5, 3, 1, '8'); }, // 간호사 모자
+    d => { d.cap(29, -6, 27, -1, 2, 'Y'); d.cap(27, -1, 22, 3, 2.4, 'Y'); d.cap(22, 3, 18, 4, 2, 'Y'); d.outline();
+      d.r(30, -9, 2, 2, 'Z'); d.r(17, 4, 2, 1, 'Z'); d.line(27, 0, 22, 4, 'y'); d.line(29, -5, 28, -1, '1'); },                          // 바나나 핀
+    d => { d.e(9, -6, 3.5, 8, 'W'); d.e(23, -6, 3.5, 8, 'W'); d.outline(); d.e(9, -5, 1.4, 5.5, 'P'); d.e(23, -5, 1.4, 5.5, 'P');
+      d.r(7, -11, 1, 3, '8'); d.r(21, -11, 1, 3, '8'); d.r(11, -4, 1, 5, 'G'); d.r(25, -4, 1, 5, 'G'); },                               // 토끼 귀
+    d => { const ear = ['h.......', 'hh......', 'hhh.....', 'hPhh....', 'hPPhh...', 'hPPPhh..', 'hhhhhhh.'];
+      d.rows(3, -5, ear, { h: d.hc }); d.rows(22, -5, mirror(ear), { h: d.hc }); d.outline(); d.p(4, -1, '3'); d.p(27, -1, '3'); },     // 고양이 귀
+    d => { d.r(3, 6, 26, 6, 'W'); d.outline(); for (let i = 4; i < 28; i += 5) d.line(i, 11, i + 3, 6, 'G'); d.e(9.5, 8.5, 1.8, 1.8, 'R'); d.p(9, 8, '6');
+      d.r(27, 9, 4, 3, 'W'); d.r(31, 10, 2, 3, 'W'); d.p(32, 13, 'G'); },                                                                // 붕대 칭칭
+    d => { const k = (G.t * 3 | 0) % 2; d.line(16, 1, 16, -8 - k, 'g', 2); d.e(17, -10 - k, 3, 3, k ? '6' : 'R'); d.outline();
+      d.r(15, -12 - k, 2, 1, 'W'); d.p(15, -11 - k, '3'); if (k) { d.p(12, -14, 'Y'); d.p(22, -14, 'Y'); d.p(21, -8, 'Y'); } },            // 안테나
+    d => { d.e(16, 5, 13.5, 10, 'v', 4); d.outline(); d.r(3, 3, 26, 2, 'V');
+      [[8, -1], [14, -3], [20, -1], [11, 1], [23, 2], [17, 1], [6, 2], [26, -1]].forEach(([a, b]) => { d.p(a, b, 'V'); d.p(a + 1, b, '5'); }); }, // 수술 모자
+    d => { d.ring(16, 12, 15, 12, 2, 'e'); d.e(2, 16, 3, 4.5, 'e'); d.e(30, 16, 3, 4.5, 'e'); d.line(30, 20, 22, 24, 'e');
+      d.e(21, 24, 2, 1.6, 'E'); d.outline(); d.r(1, 13, 2, 6, 'E'); d.r(29, 13, 2, 6, 'E'); d.p(4, 13, 'M'); d.p(20, 23, 'g'); },                                                                               // 헤드셋
+    d => { d.at(0, 4); d.r(7, -4, 18, 7, 'S'); d.outline(); d.r(8, -3, 16, 1, '4'); d.r(9, -2, 3, 1, 'W'); d.r(8, 2, 16, 1, 'B');
+      d.p(14, 0, 'W'); d.p(19, -1, 'W'); d.p(11, 5, 'B'); d.p(11, 6, 'S'); d.p(22, 6, 'S'); },                                           // 아이스팩 (물방울)
+    d => { d.at(0, 5); d.r(3, -7, 26, 9, 'g'); d.r(14, -11, 4, 3, 'g'); d.r(-2, -5, 5, 3, 'e'); d.r(29, -5, 5, 3, 'e'); d.outline();
+      d.r(2, -8, 28, 2, 'G'); d.r(5, -5, 2, 6, 'G'); d.r(25, -5, 3, 6, 'e'); d.p(15, -11, 'W'); d.r(9, -4, 1, 1, 'W'); },               // 냄비
+    d => { d.r(10, -21, 12, 11, '4'); d.r(15, -10, 3, 3, 'W'); d.line(16, -7, 16, 1, 'W', 2); d.outline();
+      d.r(11, -16, 10, 5, 'S'); d.r(13, -20, 6, 3, 'W'); d.r(14, -19, 4, 1, 'R'); d.r(11, -16, 10, 1, 'B'); d.p(12, -20, 'W'); d.p(16, -5, 'S'); }, // 링거팩
+    d => { d.e(16, 2, 13, 9, 'R', 0); d.cap(20, -6, 26, -8, 2.5, 'R'); d.e(29, -9, 3, 3, 'W'); d.r(2, -1, 28, 4, 'W'); d.outline();
+      d.r(21, -5, 6, 2, 'r'); d.r(24, -3, 4, 2, 'r'); d.r(8, -4, 3, 1, '6'); for (let i = 4; i < 30; i += 3) d.p(i, 1, 'G'); d.p(28, -10, '8'); }, // 산타 모자
+    d => { const C = ['R', '6', 'Y', 'M', 'S', 'L'];
+      [[4, -4], [9, -9], [16, -11], [23, -9], [28, -4], [2, 2], [30, 2]].forEach(([a, b]) => d.e(a, b, 5, 5, 'R'));
+      d.e(16, 0, 15, 11, 'R', 3); d.outline();
+      for (let k = 1; k < 6; k++) d.e(16, 3, 15 - k * 2.3, 13 - k * 2.3, C[(k + (G.t * 6 | 0)) % 6], 3); },                                                                              // 무지개 아프로
+    d => { d.at(0, 6); const k = (G.t * 2 | 0) % 2; d.ring(16, -9 - k, 11, 4.5, 1.6, 'Y'); d.outline('y');
+      d.r(9, -12 - k, 4, 1, '1'); d.r(22, -7 - k, 3, 1, '2'); d.p(4, -14 - k, '1'); d.p(28, -13 + k, '1'); },                             // 천사 고리
+    d => { d.at(0, 3); d.rows(9, -6, ['Y.....R.....Y', 'YY...YYY...YY', 'YYY.YYYYY.YYY', 'YYYYYYYYYYYYY', 'YYYYYYYYYYYYY', 'YYYYYYYYYYYYY', 'yyyyyyyyyyyyy']); d.outline();
+      d.r(11, -3, 2, 2, 'S'); d.r(15, -3, 2, 2, 'R'); d.r(19, -3, 2, 2, 'M'); d.p(11, -3, 'W'); d.p(15, -3, '3'); d.p(19, -3, 'W');
+      d.r(10, -6, 1, 2, '1'); d.p(15, -6, '3'); d.r(10, -1, 12, 1, '2'); },                                                              // 왕관
+  ];
+  const HD_FACE = [
+    null,
+    d => { const h = ['PP.PP', 'PPPPP', '.PPP.', '..P..']; d.rows(5, 18, h); d.rows(22, 18, h); d.p(5, 18, '3'); d.p(22, 18, '3'); },   // 볼하트
+    d => { d.ring(11, 16, 4.5, 3.8, 1, 'O'); d.ring(21, 16, 4.5, 3.8, 1, 'O'); d.r(4, 15, 3, 1, 'O'); d.r(25, 15, 3, 1, 'O');
+      d.p(8, 14, 'W'); d.p(18, 14, 'W'); d.p(9, 13, '4'); d.p(19, 13, '4'); },                                                           // 안경
+    d => { d.rows(19, 18, ['..yyyyyy', '.yyXXXyy', 'yyXXXyy.', 'yyyyyy..']); d.outline('Z'); d.p(21, 20, 'y'); d.p(23, 19, 'y'); d.p(20, 18, '1'); }, // 반창고
+    d => { d.r(9, 18, 4, 1, 'l'); d.r(8, 17, 1, 1, 'l'); d.r(10, 19, 2, 1, 'L'); d.r(19, 18, 4, 1, 'l'); d.r(23, 17, 1, 1, 'l'); d.r(20, 19, 2, 1, 'L'); }, // 다크서클
+    d => { const h = ['.PP.PP.', 'PPPPPPP', 'PPPPPPP', '.PPPPP.', '..PPP..', '...P...'];
+      d.rows(7, 13, h); d.rows(17, 13, h); d.outline('p'); d.p(8, 14, 'W'); d.p(18, 14, 'W'); d.p(9, 14, '3'); d.p(19, 14, '3'); },     // 하트 눈
+    d => { d.r(6, 13, 9, 5, 'K'); d.r(17, 13, 9, 5, 'K'); d.r(15, 14, 2, 1, 'K'); d.r(4, 14, 2, 1, 'K'); d.r(26, 14, 2, 1, 'K');
+      d.p(6, 17, 'F'); d.p(14, 17, 'F'); d.p(17, 17, 'F'); d.p(25, 17, 'F'); d.r(7, 16, 7, 1, 'e'); d.r(18, 16, 7, 1, 'e');
+      d.line(8, 15, 9, 14, 'W'); d.line(19, 15, 20, 14, 'W'); d.p(11, 14, 'g'); d.p(22, 14, 'g'); },                                    // 선글라스
+    d => { d.rows(13, 17, ['WWW.', 'WWWW', 'WWWW', '.WWW', '.RRW', '.RR.']); d.outline('g'); d.p(14, 18, 'G'); d.p(15, 19, 'G'); d.p(13, 17, '8'); }, // 코피 휴지
+    d => { d.r(6, 18, 20, 6, '4'); d.r(7, 24, 18, 1, '4'); d.r(5, 19, 1, 4, '4'); d.r(26, 19, 1, 4, '4'); d.outline('B');
+      d.r(7, 20, 18, 1, 'S'); d.r(7, 22, 18, 1, 'S'); d.line(4, 19, 2, 16, 'g'); d.line(27, 19, 29, 16, 'g'); d.r(8, 19, 3, 1, 'W'); }, // 마스크
+    d => { d.rows(6, 18, ['kk................kk', 'k.k..............k.k', '.kkkkkkk....kkkkkkk.', '..kkkkkkkkkkkkkkkk..', '....kkkkk..kkkkk....']);
+      d.r(9, 20, 3, 1, 'h'); d.r(20, 20, 3, 1, 'h'); },                                                                                  // 콧수염
+    d => { const s = ['..Y..', '.YYY.', 'YYYYY', '.YYY.', '.Y.Y.']; d.rows(4, 17, s); d.rows(23, 17, s); d.outline('y'); d.p(6, 18, 'W'); d.p(25, 18, 'W'); }, // 별 볼
+    d => { const k = (G.t * 6 | 0) % 3, n = 3 + k * 3; d.r(10, 18, 2, n, 'S'); d.r(20, 18, 2, n, 'S'); d.e(11, 18 + n, 1.8, 1.8, 'S'); d.e(21, 18 + n, 1.8, 1.8, 'S');
+      d.outline('B'); d.r(10, 18, 1, n, '4'); d.r(20, 18, 1, n, '4'); d.p(10, 18 + n, 'W'); d.p(20, 18 + n, 'W'); },                     // 눈물 줄줄
+    d => { const k = (G.t * 4 | 0) % 2; [11, 21].forEach(c => { d.e(c, 16, 5, 5, 'W'); }); d.outline();
+      [11, 21].forEach(c => { d.ring(c, 16, 3.5, 3.5, 1, 'O'); d.ring(c, 16, 2, 2, 1, 'L'); d.p(c - 1 + k, 15, 'O'); d.p(c - 4, 13, 'O'); }); d.r(15, 16, 2, 1, 'O'); }, // 빙글 안경
+    d => { d.e(16, 18, 3.5, 3.5, 'R'); d.outline(); d.r(14, 16, 2, 1, 'W'); d.p(14, 17, '3'); d.r(17, 20, 2, 1, 'r'); d.p(19, 19, 'r'); }, // 피에로 코
+    d => { d.ring(21, 16, 4.5, 4.5, 1.4, 'Y'); d.outline('2'); d.p(19, 14, 'W'); d.p(20, 13, 'W');
+      for (let i = 0; i < 6; i++) d.p(24 + (i > 2 ? 1 : 0) + (i > 4 ? 1 : 0), 20 + i, i % 2 ? 'y' : 'Y'); },                             // 외눈 안경
+  ];
+  const HD_BADGE = [
+    null,
+    d => { d.rows(17, 25, ['...Y...', '..YYY..', 'YYYYYYY', '.YYYYY.', '.YYYYY.', '.YY.YY.', 'YY...YY']); d.outline(); d.p(18, 27, '1'); d.p(20, 26, '1'); d.r(19, 29, 2, 1, 'y'); }, // 별 배지
+    d => { d.rows(17, 26, ['PP.PP', 'PPPPP', 'PPPPP', '.PPP.', '..P..']); d.outline(); d.p(17, 26, 'W'); d.p(18, 27, '3'); },             // 하트 배지
+    d => { d.r(26, 24, 6, 2, 'E'); d.r(26, 26, 6, 10, 'W'); d.outline(); d.r(26, 29, 6, 4, 'Z'); d.r(27, 30, 2, 2, 'W'); d.r(26, 26, 1, 10, '8'); d.p(31, 25, 'e'); }, // 텀블러
+    d => { d.line(8, 24, 11, 32, 'e'); d.line(9, 24, 12, 32, 'e'); d.line(23, 24, 20, 32, 'e'); d.line(22, 24, 19, 32, 'e');
+      d.line(12, 32, 15, 36, 'e', 2); d.line(19, 32, 16, 36, 'e', 2); d.line(16, 37, 18, 40, 'e', 2); d.e(19, 41, 2.6, 2.6, 'G'); d.outline();
+      d.r(18, 40, 2, 1, 'W'); d.p(20, 42, 'g'); d.r(7, 23, 2, 1, 'G'); d.r(22, 23, 2, 1, 'G'); },                                         // 청진기
+    d => { d.r(10, 25, 2, 8, 'W'); d.r(10, 23, 2, 2, 'Y'); d.outline(); d.r(9, 27, 1, 3, 'g'); d.p(10, 23, '1'); d.p(11, 21, '1'); d.p(8, 22, '1'); d.p(13, 22, '1'); d.r(11, 25, 1, 8, 'G'); }, // 펜라이트
+    d => { d.r(-5, 24, 10, 13, 'Z'); d.outline(); d.r(-4, 26, 8, 10, 'W'); d.r(-2, 23, 4, 3, 'g');
+      d.r(-3, 28, 6, 1, 'g'); d.r(-3, 30, 6, 1, 'g'); d.r(-3, 32, 4, 1, 'g'); d.p(1, 34, 'R'); d.p(2, 33, 'R'); d.p(0, 33, 'R'); d.r(-1, 23, 2, 1, 'G'); }, // 차트판
+    d => { d.r(10, 23, 2, 9, 'W'); d.e(11, 33, 2, 2, 'R'); d.outline(); d.r(11, 27, 1, 5, 'R'); d.p(10, 32, '3'); d.r(10, 24, 1, 1, 'g'); d.r(10, 26, 1, 1, 'g'); }, // 체온계
+    d => { d.rows(24, 25, ['....WW....', '...WWWW...', '..WWWWWW..', '..WWWWWW..', '.WWWWWWWW.', '.WWWWWWWW.', 'WddddddddW', 'WddddddddW', 'WddddddddW', '.dddddddd.']);
+      d.outline(); d.p(28, 27, 'G'); d.p(26, 29, 'G'); d.p(30, 29, 'G'); d.r(27, 32, 4, 1, 'R'); },                                      // 삼각김밥
+    d => { d.r(26, 24, 6, 2, 'g'); d.r(26, 26, 6, 9, 'Y'); d.outline(); d.rows(27, 27, ['..R.', '.RR.', 'RRRR', '.RR.', '.R..']);
+      d.r(26, 26, 1, 9, '1'); d.r(31, 26, 1, 9, 'y'); d.r(28, 24, 2, 1, 'e'); },                                                         // 에너지 음료
+    d => { d.line(35, 14, 30, 19, 'g'); d.cap(30, 19, 23, 26, 2.2, 'W'); d.line(23, 26, 20, 29, 'g', 2); d.line(17, 27, 22, 32, 'g', 2); d.outline();
+      d.line(29, 21, 25, 25, 'S', 2); d.line(28, 19, 24, 23, '8'); d.p(27, 23, 'B'); d.p(25, 25, 'B'); },                                // 왕 주사기
+    d => { const k = (G.t * 2 | 0) % 2;
+      d.e(31, 13 - k, 5.5, 4.5, '4'); [26, 29, 32, 35].forEach((a, i) => d.cap(a, 10 - k, a + (i - 1.5) * 0.6, 3 - k - (i === 1 || i === 2 ? 1 : 0), 1.4, '4'));
+      d.cap(36, 13 - k, 39, 10 - k, 1.4, '4'); d.outline(); d.line(31, 18 - k, 27, 34, 'g');
+      d.r(27, 11 - k, 2, 2, 'W'); d.p(26, 6 - k, 'W'); d.r(29, 16 - k, 5, 1, 'S'); },                                                   // 장갑 풍선
+    d => { d.rows(24, 22, ['..........RR', '........RRRR', '......RRRRRR', 'WWWWRRRRRRRR', 'WWWWRRRRRRRR', 'WWWWRRRRRRRR', 'WWWWRRRRRRRR', '......RRRRRR', '........RRRR', '..........RR']);
+      d.r(28, 32, 2, 4, 'e'); d.outline(); d.r(35, 22, 1, 10, 'W'); d.r(30, 25, 4, 1, '3'); d.r(28, 29, 6, 1, 'r');
+      d.p(38, 23, 'Y'); d.p(39, 26, 'Y'); d.p(39, 28, 'Y'); d.p(38, 31, 'Y'); },                                                         // 메가폰
+    d => { d.rows(17, 23, ['RR.SS', '.RSS.', '.RSS.']); d.e(20, 30, 3.8, 3.8, 'Y'); d.outline(); d.rows(18, 28, ['..W..', '.WWW.', '..W..', '.W.W.']);
+      d.p(17, 28, '1'); d.r(21, 32, 2, 1, '2'); },                                                                                       // 금 배지
+  ];
+  const HD_PET = [
+    null,
+    d => { d.e(7, 8, 6.5, 5.5, 'Y'); d.rows(6, 0, ['.Y.', 'YYY']); d.outline();
+      d.r(3, 6, 2, 2, 'K'); d.p(3, 6, 'W'); d.r(-1, 8, 3, 2, '6'); d.p(-1, 8, 'O'); d.e(9, 9, 2.6, 1.6, 'y'); d.r(2, 10, 2, 1, 'P');
+      d.r(4, 3, 3, 1, '1'); d.r(4, 14, 2, 1, '6'); d.r(9, 14, 2, 1, '6'); },                                                              // 병아리
+    d => { d.e(5.5, 7, 5, 6.5, 'W'); d.e(5.5, 4, 5, 3.5, 'P'); d.r(0.5, 4, 10, 3, 'P'); d.outline(); d.r(1, 7, 10, 1, 'p');
+      d.r(2, 2, 1, 3, '3'); d.p(3, 1, '3'); d.r(3, 9, 1, 2, 'K'); d.r(7, 9, 1, 2, 'K'); d.r(4, 11, 3, 1, 'p'); d.p(2, 11, '3'); d.p(8, 11, '3'); }, // 알약 친구
+    d => { d.e(7, 8, 6.5, 5.5, 'Z'); d.rows(1, 0, ['Z.....', 'ZZ....', 'ZZZ...']); d.rows(9, 0, ['.....Z', '....ZZ', '...ZZZ']); d.outline();
+      d.p(2, 2, 'P'); d.p(12, 2, 'P'); d.r(5, 4, 1, 2, 'z'); d.r(7, 4, 1, 2, 'z'); d.r(9, 4, 1, 2, 'z');
+      d.r(3, 7, 2, 2, 'K'); d.r(10, 7, 2, 2, 'K'); d.p(3, 7, 'W'); d.p(10, 7, 'W'); d.p(7, 9, 'P'); d.r(6, 10, 1, 1, 'z'); d.r(8, 10, 1, 1, 'z');
+      d.r(-2, 9, 3, 1, 'O'); d.r(13, 9, 3, 1, 'O'); d.r(-1, 11, 2, 1, 'O'); d.r(13, 11, 2, 1, 'O'); },                                  // 고양이
+    d => { d.e(6, 2, 5.5, 2, '4'); d.r(0.5, 2, 11, 9, '4'); d.e(6, 11, 5.5, 2, '4'); d.r(5, 12, 2, 5, 'W'); d.outline();
+      d.r(1, 6, 10, 5, 'S'); d.e(6, 11, 4.5, 1.5, 'S'); d.r(1, 6, 10, 1, 'B'); d.r(4, 0, 4, 1, 'W');
+      d.r(3, 7, 1, 2, 'K'); d.r(8, 7, 1, 2, 'K'); d.r(5, 9, 2, 1, 'K'); d.r(2, 2, 1, 3, 'W'); },                                          // 수액팩 친구
+    d => { const k = (G.t * 4 | 0) % 2; d.e(6, 6, 6, 6.5, 'W'); d.r(0, 6, 12, 6, 'W');
+      for (let i = 0; i < 12; i += 4) d.r(i + 2 * k, 12, 2, 2, 'W'); d.outline(); d.r(9, 4, 2, 8, 'G');
+      d.r(3, 5, 2, 3, 'K'); d.r(7, 5, 2, 3, 'K'); d.p(3, 5, 'W'); d.p(7, 5, 'W'); d.e(6, 10, 1.2, 1.2, 'K'); d.p(2, 8, '3'); d.p(9, 8, '3'); }, // 유령
+    d => { const k = (G.t * 3 | 0) % 2;
+      d.rows(0, 0, ['......Y......', '.....YYY.....', '.....YYY.....', '....YYYYY....', 'YYYYYYYYYYYYY', '.YYYYYYYYYYY.', '..YYYYYYYYY..', '...YYYYYYY...', '...YYYYYYY...', '..YYYY.YYYY..', '..YYY...YYY..', '.YY.......YY.']);
+      d.outline(); d.r(4, 6, 1, 2, 'K'); d.r(8, 6, 1, 2, 'K'); d.r(5, 8, 3, 1, 'p'); d.p(3, 8, 'P'); d.p(9, 8, 'P'); d.r(5, 2, 1, 2, '1');
+      d.p(k ? -2 : 14, k ? 1 : 3, '1'); d.p(k ? 14 : -2, k ? 10 : 8, 'Y'); },                                                           // 반짝 별
+    d => { d.rows(0, 0, ['...LLLLLL...', '.LLlLLlLLlL.', 'LLlLLlLLlLLL', 'LLLLLLLLLLLL', 'LLFFFFFFFFLL', 'LFFFFFFFFFFL', 'LFFFFFFFFFFL', 'LFFFFFFFFFFL', 'LFFFFFFFFFFL', '.FFFFFFFFFF.', '.FFFFFFFFFF.', '..FFFFFFFF..']);
+      d.outline(); d.p(2, 5, 'K'); d.p(3, 6, 'K'); d.p(9, 5, 'K'); d.p(8, 6, 'K'); d.r(3, 7, 1, 2, 'K'); d.r(8, 7, 1, 2, 'K');
+      d.r(4, 9, 4, 2, '9'); d.r(4, 9, 4, 1, 'r'); d.p(1, 9, 'P'); d.p(10, 9, 'P'); d.r(2, 1, 2, 1, '7');
+      d.rows(12, -4, ['R.R', '.R.', 'R.R']); },                                                                                           // 미니 진상
+  ];
+
   // ---------- 정교한 캐릭터 (2배 해상도) ----------
   // 지금 그림을 Scale2x로 2배 키워 대각선을 부드럽게 하고, 눈·입·볼은 2배 해상도로 새로 그림.
   // 화면에는 0.5배로 그려 크기는 그대로 (캔버스 내부 배율을 짝수로 맞춰 반 픽셀도 또렷함)
@@ -465,7 +645,7 @@
   function lighter(c, n) { const p = PAL[c]; return p ? `rgb(${p.map(v => Math.min(255, v + n)).join(',')})` : c; }
   function nurseHD(lk, mood, blink, noPet) {
     const sc = LOOKS.scrub[lk.scrub], hr = LOOKS.hair[lk.hair];
-    const anim = hr.c === 'rb' || sc.pat === 'rainbow' || lk.head === 10 || lk.head === 18 || lk.face === 11 || lk.badge === 11 || (lk.pet > 0 && !noPet);
+    const anim = hr.c === 'rb' || sc.pat === 'rainbow' || lk.head === 10 || lk.head === 17 || lk.head === 18 || lk.face === 11 || lk.face === 12 || lk.badge === 11 || (lk.pet > 0 && !noPet);
     const key = lookStr(lk) + '|' + mood + (blink ? 'b' : '') + (noPet ? 'n' : '') + (anim ? (G.t * 6 | 0) % 12 : '');
     let cv = hdCache.get(key);
     if (cv) return cv;
@@ -486,19 +666,25 @@
     else { put(MOUTH, 14, 21); put(MOUTH, 17, 21); put(MOUTH, 15, 22, 2, 1); }
     // 머리 하이라이트
     if (!hr.bald && hr.c !== 'rb') { const hl = lighter(hc, 45); put(hl, 9, 7, 4, 1); put(hl, 8, 8); put(hl, 13, 2, 2, 1); }
-    // 무늬·소품·얼굴·머리 장식·펫 (2배로 부드럽게 키워 겹침)
+    // 근무복 무늬 (2배로 부드럽게 키워 겹침)
     const over = scale2x(lowCanvas(HD_W, HD_H, HD_OX, HD_OY, () => {
       if (hr.bald) { px(6, 2, 'W'); px(7, 2, 'W'); px(5, 3, 'W'); }
       if (sc.pat === 'stripe') { rect(4, 14, 8, 1, 'W'); rect(4, 16, 8, 1, 'W'); rect(4, 18, 4, 1, 'W'); rect(9, 18, 3, 1, 'W'); }
       else if (sc.pat === 'hawaii') { px(5, 14, 'P'); px(8, 15, 'Y'); px(6, 16, 'Y'); px(10, 16, 'P'); px(7, 13, 'W'); px(9, 13, 'P'); }
       else if (sc.pat === 'rainbow') { for (let j = 0; j < 4; j++) rect(4, 13 + j, 8, 1, rb(j)); }
-      const b = BADGE_DRAW[lk.badge]; if (b) b();
-      const f = FACE_DRAW[lk.face]; if (f) f();
-      const hd = HEAD_DRAW[lk.head]; if (hd) hd();
-      const pt = PET_DRAW[lk.pet];
-      if (pt && !noPet) { ctx.save(); ctx.translate(17, 4 + ((G.t * 2 | 0) % 2)); pt(); ctx.restore(); }
     }));
     g.drawImage(over, 0, 0);
+    // 소품·얼굴·머리 장식·펫은 2배 해상도로 직접 그린 그림 (없으면 예전 그림을 키워서)
+    const bob = (G.t * 2 | 0) % 2;
+    [['badge', HD_BADGE, BADGE_DRAW], ['face', HD_FACE, FACE_DRAW], ['head', HD_HEAD, HEAD_DRAW], ['pet', HD_PET, PET_DRAW]].forEach(([k, hdT, loT]) => {
+      const i = lk[k];
+      if (!i || (k === 'pet' && noPet)) return;
+      if (hdT[i]) g.drawImage(hdLayer(d => { if (k === 'pet') d.at(34, 8 + bob * 2); hdT[i](d); }, hc), 0, 0);
+      else if (loT[i]) g.drawImage(scale2x(lowCanvas(HD_W, HD_H, HD_OX, HD_OY, () => {
+        if (k === 'pet') ctx.translate(17, 4 + bob);
+        loT[i]();
+      })), 0, 0);
+    });
     hdCache.set(key, cv);
     return cv;
   }
@@ -2125,6 +2311,17 @@
     else if (G.state === 'tut') drawTut();
     else if (G.state === 'rec') drawRec();
     else if (G.state === 'icon') drawIcon();
+    else if (G.state === 'items') {
+      rect(0, 0, W, H, 'cream');
+      const all = [];
+      ['head', 'face', 'badge', 'pet'].forEach(k => LOOKS[k].forEach((x, i) => { if (i) all.push([k, i, x.name]); }));
+      all.slice(G.itemsPage * 6, G.itemsPage * 6 + 6).forEach(([k, i, name], n) => {
+        const cx = (n % 2) * 64, cy = (n / 2 | 0) * 74;
+        const lk = lookParse(''); lk[k] = i;
+        nurse(cx + 10, cy + 26, lk, { scale: 2 });
+        ptext(name, cx + 32, cy + 2, 's', 'O', { edge: null, align: 'c' });
+      });
+    }
     else if (G.state === 'zoom') {
       rect(0, 0, W, H, 'cream');
       nurse(4, 4, lookParse(''), { scale: 3 });
@@ -2179,6 +2376,7 @@
     else if (shot === 'install') G.state = 'install';
     else if (shot === 'icon') G.state = 'icon';
     else if (shot === 'zoom') { G.state = 'zoom'; }
+    else if (shot.startsWith('items')) { G.state = 'items'; G.itemsPage = parseInt(shot.slice(5), 10) || 0; }
     else if (shot === 'dup') { Rank.rows = [{ id: 'x', nick: '콜벨헌터', look: lookParse('') }]; openName('title'); nickEl.value = '콜벨헌터'; }
     else if (shot === 'theme') { playAt(() => { G.look.theme = 4; G.elapsed = SHIFT * 0.85; G.evIdx = 4; }); }
     else if (/^tut\d+$/.test(shot)) { G.state = 'tut'; G.tutPage = Math.min(TUT.length, +shot.slice(3)) - 1; }
