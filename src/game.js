@@ -683,9 +683,18 @@
   ];
   const BIN = [{ name: '투약', fill: 'P', dark: 'p' }, { name: '검사', fill: 'S', dark: 'B' }, { name: '기록', fill: 'M', dark: 'm' }];
   const B_BINS = [0, 1, 2].map(i => ({ x: 4 + i * 41, y: 150, w: 38, h: 34 }));
-  const CALL_KINDS = ['drip', 'pain', 'water', 'call'];
-  const CALL_ICON = { drip: DROP, pain: PILL, water: CUP, call: BELL, demand: ANGRY };
-  const CALL_NAME = { drip: '수액 교체', pain: '진통제', water: '물 한 잔', call: '호출 응답', demand: '거절!' };
+  const BLANKET = ['OOOOOOO', 'OLWLWLO', 'OWLWLWO', 'OLWLWLO', 'OOOOOOO'];
+  const STAMP = ['.OOO.', '.OZO.', '.OZO.', 'OOOOO', 'ORRRO', 'OOOOO'];
+  const CALL_KINDS = ['drip', 'pain', 'water', 'cold'];
+  const CALL_ICON = { drip: DROP, pain: PILL, water: CUP, cold: BLANKET, demand: ANGRY };
+  // 카트: 고른 물건을 들고 침대를 누르면 전달. 무리한 요구는 거절 도장
+  const TOOLS = [
+    { k: 'drip', name: '수액', icon: DROP }, { k: 'pain', name: '진통', icon: PILL }, { k: 'water', name: '물', icon: CUP },
+    { k: 'cold', name: '담요', icon: BLANKET }, { k: 'demand', name: '도장', icon: STAMP },
+  ];
+  const B_TOOLS = TOOLS.map((t, i) => ({ x: 4 + i * 24, y: 196, w: 22, h: 26 }));
+  const TOOL_KEYS = ['q', 'w', 'e', 'r', 't'];
+  const WRONG_LINES = ['이거 말고요!', '제가 언제요?', '이게 아닌데..', '다른 거요!'];
 
   const G = {
     state: 'title', t: 0, st: 0, mode: 'normal',
@@ -702,7 +711,7 @@
       calls: [null, null, null, null, null, null], moodT: [0, 0, 0, 0, 0, 0], moodK: ['', '', '', '', '', ''],
       nx: 56, ny: 110, ntx: 56, nty: 110, nflip: false,
       items: [], fx: [], fever: 0, shake: 0,
-      stats: { calls: 0, karens: 0, coffee: 0, missed: 0, demands: 0 },
+      stats: { calls: 0, karens: 0, coffee: 0, missed: 0, demands: 0, wrong: 0 }, tool: null, toolT: 0,
       event: null, evIdx: 0, nextSpawn: 1.2, nextItem: 8, noteText: '', noteT: 0,
       overMsg: null, success: false, newBest: false, unlockMsg: '',
     });
@@ -731,6 +740,14 @@
     const [bx, by] = BEDS[i];
     G.ntx = i % 2 ? 66 : 46; G.nty = by - 4; G.nflip = i % 2 === 0;
     if (!c) return;
+    if (!G.tool) { fx(bx + 17, by - 10, '카트에서 고르기!', 'B'); SFX.wrong(); return; }
+    if (G.tool !== c.kind) {
+      // 틀린 물건: 콤보·집중 모드 끝, 체력 조금 감소. 콜벨은 그대로 남음
+      G.combo = 0; G.fever = 0; G.stamina -= 3; G.stats.wrong++;
+      fx(bx + 17, by - 10, WRONG_LINES[Math.floor(Math.random() * WRONG_LINES.length)], 'R');
+      G.moodT[i] = 0; G.shake = 0.15; SFX.wrong();
+      return;
+    }
     if (c.kind === 'demand' && c.taps < 2) {
       c.taps++;
       fx(bx + 17, by - 10, '거절!', 'R', 'm'); SFX.stamp();
@@ -748,6 +765,7 @@
     G.calls[i] = null; G.moodT[i] = 1.4; G.moodK[i] = 'happy';
     if (G.combo % 15 === 0 && G.fever <= 0) { G.fever = 8; note('집중 모드! 점수 2배', 'Y'); SFX.fever(); }
   }
+  function pickTool(k) { G.tool = G.tool === k ? null : k; SFX.tap(); }
   function missCall(i) {
     const [bx, by] = BEDS[i];
     G.calls[i] = null; G.moodT[i] = 1.6; G.moodK[i] = 'pain';
@@ -904,6 +922,8 @@
     rrect(6, 32, 30, 14, 'N', 'O'); px(14, 36, 'W'); px(26, 39, 'X'); px(20, 35, 'W');
     rrect(92, 32, 30, 14, 'N', 'O'); sprite(110, 35, MOON);
     if (G.noteT > 0) pill(G.noteText, 64, 34, G.noteCol, G.noteCol === 'Y' || G.noteCol === 'G' ? 'O' : 'W');
+    else if (fever) pill('집중 모드 x2', 64, 34, rb(2), 'O');
+    else if (G.combo >= 2) pill('콤보 x' + G.combo, 64, 34, 'Y', 'O');
     else pill(G.ward ? fitText(G.ward, 50, 's').t : '7병동', 64, 34, 'G', 'O');
     for (let i = 0; i < 6; i++) bed(i);
     // 커피·간식
@@ -914,12 +934,19 @@
     });
     // 간호사
     nurse(G.nx, G.ny, G.look, { blink: blinkNow(), flip: G.nflip, mood: G.stamina < 25 ? 'tired' : null });
+    if (G.tool) { const ic = TOOLS.find(t => t.k === G.tool).icon; sprite(G.nx + 8 - Math.ceil(ic[0].length / 2), G.ny - 9, ic); }
     // 효과 글자
     G.fx.forEach(f => ptext(f.text, f.x, f.y - Math.round(f.t * 10), f.f, f.col, { align: 'c' }));
     // 아래: 콤보
-    if (fever) pill('집중 모드 x2', 64, 208, rb(2), 'O', 'm');
-    else if (G.combo >= 2) pill('콤보 x' + G.combo, 64, 208, 'Y', 'O', 'm', 'y');
-    else ptext('콜벨을 톡! 눌러요', 64, 210, 's', 'o', { edge: null, align: 'c' });
+    // 아래: 카트 (고른 물건은 노랗게 올라와 있음)
+    rect(0, 193, W, 31, 'g'); rect(0, 193, W, 1, 'O');
+    TOOLS.forEach((t, i) => {
+      const b = B_TOOLS[i], on = G.tool === t.k, up = on ? -2 : 0;
+      rrect(b.x, b.y + up, b.w, b.h - 2, on ? 'Y' : 'W', 'O', on ? 'y' : 'cream3');
+      sprite(b.x + 11 - Math.ceil(t.icon[0].length / 2), b.y + 4 + up, t.icon);
+      ptext(t.name, b.x + 11, b.y + 13 + up, 's', on ? 'O' : 'o', { edge: null, align: 'c' });
+    });
+    if (!G.tool && G.elapsed < 6) ptext('▼ 먼저 고르고 침대를 눌러요', 64, 184, 's', 'B', { edge: 'W', align: 'c' });
     ctx.restore();
     if (G.event) drawEvent();
   }
@@ -1334,10 +1361,14 @@
   // ---------- 화면: 튜토리얼 ----------
   const P_PREV = { x: 5, y: 182, w: 22, h: 18 }, P_NEXT = { x: 101, y: 182, w: 22, h: 18 };
   const TUT = [
-    { title: '콜벨 끄기', lines: ['콜벨이 뜬 침대를 톡!', '빨리 끌수록 고득점', '연속으로 끄면 콤보'],
-      art: () => { bedAt(16, 48, { kind: 'drip', age: (G.t % 3), life: 4, taps: 0 }); ptext('팡!', 92, 50, 'b', 'Y', { align: 'c' }); sprite(80, 62, SPARK); } },
-    { title: '무리한 요구', lines: ['빨간 말풍선은', '세 번 눌러 거절!', '점수가 더 커요'],
-      art: () => { bedAt(16, 48, { kind: 'demand', age: 1, life: 4, taps: (G.t * 2 | 0) % 3 }); ptext('거절!', 94, 52, 'm', 'R', { align: 'c' }); } },
+    { title: '필요한 것 가져다주기', lines: ['카트에서 물건 고르고', '말풍선 침대를 톡!', '빨리 줄수록 고득점'],
+      art: () => {
+        bedAt(46, 34, { kind: 'drip', age: (G.t % 3), life: 4, taps: 0 });
+        TOOLS.forEach((t, i) => { const on = i === 0, x = 10 + i * 22; rrect(x, on ? 74 : 76, 20, 16, on ? 'Y' : 'W', 'O'); sprite(x + 10 - Math.ceil(t.icon[0].length / 2), (on ? 74 : 76) + 4, t.icon); });
+        if (((G.t * 2) | 0) % 2) ptext('▲', 20, 64, 's', 'B', { edge: 'W', align: 'c' });
+      } },
+    { title: '틀리면 콤보 끝', lines: ['다른 걸 주면 콤보 끝', '체력도 -3', '빨간 말풍선은 도장 3번!'],
+      art: () => { bedAt(16, 48, { kind: 'pain', age: 1, life: 4, taps: 0 }); sprite(64, 40, CUP); ptext('이거 말고요!', 92, 56, 's', 'R', { align: 'c' }); sprite(96, 72, STAMP, { scale: 2 }); } },
     { title: '체력과 커피', lines: ['체력이 조금씩 줄어요', '놓치면 체력 -12', '커피·간식을 눌러 회복'],
       art: () => { bar(14, 44, 100, 0.3 + 0.3 * ((G.t % 3) / 3), 'M'); sprite(40, 60, COFFEE, { scale: 2 }); sprite(70, 62, DONUT, { scale: 2 }); } },
     { title: '진상 보너스', lines: ['가끔 진상이 나타나요', '5초 동안 마구 연타!', '날려 버리면 +1,000'],
@@ -1497,6 +1528,8 @@
   }
   function playTap(p) {
     if (G.event) { eventTap(p); return; }
+    const ti = B_TOOLS.findIndex(b => inBox(p, b));
+    if (ti >= 0) { pickTool(TOOLS[ti].k); return; }
     // 커피·간식 먼저 (가까우면)
     const it = G.items.find(o => Math.abs(p.x - (o.x + 4)) < 10 && Math.abs(p.y - (o.y + 4)) < 10);
     if (it) {
@@ -1607,6 +1640,7 @@
       if (G.event && (k === ' ' || k === 'Enter')) { eventTap({ x: -99, y: -99 }); e.preventDefault(); }
       else if (G.event && G.event.type === 'round' && ['1', '2', '3'].includes(k)) { const b = B_BINS[+k - 1]; eventTap({ x: b.x + 2, y: b.y - 28 }); }
       else if (!G.event && k >= '1' && k <= '6') tapBed(+k - 1);
+      else if (!G.event && TOOL_KEYS.includes(k.toLowerCase())) pickTool(TOOLS[TOOL_KEYS.indexOf(k.toLowerCase())].k);
       return;
     }
     if (k === 'Enter' || k === ' ') {
@@ -1686,7 +1720,7 @@
     G.look = lookParse('1.0.1.1.4.1');
     const playAt = (extra) => { newGame('normal'); G.elapsed = SHIFT * 0.4; G.evIdx = 2; G.score = 8240; G.combo = 12; G.stamina = 62; G.noteT = 0;
       G.calls = [{ kind: 'pain', age: 1, life: 4, taps: 0 }, null, { kind: 'drip', age: 3, life: 4, taps: 0 }, { kind: 'demand', age: 1, life: 4, taps: 1 }, null, { kind: 'water', age: 0.5, life: 4, taps: 0 }];
-      G.items = [{ kind: 'coffee', x: 58, y: 150, age: 0, life: 5 }]; G.nx = 56; G.ny = 96; G.ntx = 56; G.nty = 96; fx(25, 60, '팡!', 'Y', 'b'); G.fx[0].t = 0.2;
+      G.items = [{ kind: 'coffee', x: 58, y: 150, age: 0, life: 5 }]; G.tool = 'drip'; G.nx = 56; G.ny = 96; G.ntx = 56; G.nty = 96; fx(25, 60, '팡!', 'Y', 'b'); G.fx[0].t = 0.2;
       if (extra) extra(); };
     if (shot === 'play') playAt();
     else if (shot === 'fever') playAt(() => { G.fever = 5; });
@@ -1730,7 +1764,7 @@
           }
           continue;
         }
-        G.calls.forEach((c, i) => { if (c && c.age > 0.8) tapBed(i); });
+        G.calls.forEach((c, i) => { if (c && c.age > 0.8) { if (G.tool !== c.kind) G.tool = c.kind; tapBed(i); } });
         if (G.stamina < 70 && G.items.length) { const it = G.items[0]; playTap({ x: it.x + 4, y: it.y + 4 }); }
       }
       document.title = JSON.stringify({ state: G.state, success: G.success, score: G.score, clock: clockStr(), stats: G.stats, maxCombo: G.maxCombo, events: [...seen], stamina: Math.round(G.stamina), sec: Math.round(steps / 60) });
