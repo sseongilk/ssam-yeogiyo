@@ -1274,10 +1274,9 @@
     ptext(fitText(wardName(G.wardSel), 76).t, 64, 108, 'm', 'O', { edge: null, align: 'c' });
     // 복구 코드
     rrect(14, 126, 100, 30, 'cream', 'O');
-    ptext('내 복구 코드 (복사해 두세요)', 64, 129, 's', 'o', { edge: null, align: 'c' });
+    ptext(G.copiedT > 0 ? '복사됐어요!' : '복구 코드', 64, 129, 's', G.copiedT > 0 ? 'm' : 'o', { edge: null, align: 'c' });
     rrect(CODE_BOX.x - 1, CODE_BOX.y - 1, CODE_BOX.w + 2, CODE_BOX.h + 2, 'W', 'g');
     button(N_COPY, G.copiedT > 0 ? 'M' : 'S', G.copiedT > 0 ? 'm' : 'B', G.copiedT > 0 ? '됨!' : '복사', 's', 'W');
-    if (G.copiedT > 0) ptext('복사됨! 메모장 등에 붙여 두세요', 64, 176, 's', 'm', { edge: 'W', align: 'c' });
     button(N_CODE, 'W', 'cream3', '코드로 불러오기', 's', 'O');
     button(N_OK, 'M', 'm', '확인', 'b', 'W', 'm');
     button(N_CANCEL, 'cream3', 'o', '취소', 'b', 'o');
@@ -2083,6 +2082,7 @@
       goRank('title', shot === 'ward' ? 'ward' : 'me');
     }
     else if (shot === 'name') openName('title');
+    else if (shot === 'copied') { openName('title'); G.copiedT = 99; }
     else if (shot === 'code') { openName('title'); codeMode(true); nickEl.value = 'K7QM-2XHP'; G.codeMsg = 'notfound'; }
     else if (shot === 'dress') { openDress('title'); G.dressPrev.head = 17; }
     else if (shot === 'lounge') { openLounge('title'); G.lounge.off = ['tv']; G.loungeSel = 10; }
