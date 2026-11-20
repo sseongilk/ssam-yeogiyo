@@ -5,7 +5,7 @@
   // ============================================================
   const W = 128, H = 224;
   const cvs = document.getElementById('game');
-  const ctx = cvs.getContext('2d');
+  let ctx = cvs.getContext('2d');
   const stageEl = document.getElementById('stage');
   const wrapEl = document.getElementById('wrap');
   const nickEl = document.getElementById('nick');
@@ -430,14 +430,64 @@
     () => { sprite(0, 0, ['.OOOO.', 'OLlLlO', 'OFFFFO', 'OKFFKO', 'OFrrFO', '.OOOO.']); sprite(6, -3, ['O.O', '.O.']); },
   ];
 
-  // 간호사 그리기: 근무복·머리색을 바꾸고 무늬·장식·펫을 겹쳐 그림
-  function nurse(x, y, look, opt = {}) {
-    const lk = typeof look === 'string' ? lookParse(look) : (look || lookParse(''));
+  // ---------- 정교한 캐릭터 (2배 해상도) ----------
+  // 지금 그림을 Scale2x로 2배 키워 대각선을 부드럽게 하고, 눈·입·볼은 2배 해상도로 새로 그림.
+  // 화면에는 0.5배로 그려 크기는 그대로 (캔버스 내부 배율을 짝수로 맞춰 반 픽셀도 또렷함)
+  function scale2x(src) {
+    const w = src.width, h = src.height;
+    const s32 = new Uint32Array(src.getContext('2d').getImageData(0, 0, w, h).data.buffer);
+    const out = document.createElement('canvas'); out.width = w * 2; out.height = h * 2;
+    const oc = out.getContext('2d'), od = oc.createImageData(w * 2, h * 2);
+    const o32 = new Uint32Array(od.data.buffer);
+    const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? 0 : s32[y * w + x];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const P = s32[y * w + x], A = at(x, y - 1), B = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1);
+      const i = y * 2 * w * 2 + x * 2;
+      o32[i] = C === A && C !== D && A !== B ? A : P;
+      o32[i + 1] = A === B && A !== C && B !== D ? B : P;
+      o32[i + w * 2] = D === C && D !== B && C !== A ? C : P;
+      o32[i + w * 2 + 1] = B === D && B !== A && D !== C ? D : P;
+    }
+    oc.putImageData(od, 0, 0);
+    return out;
+  }
+  // 작은 판에 기존 그리기 함수로 그림 (원점 ox, oy)
+  function lowCanvas(w, h, ox, oy, fn) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const saved = ctx;
+    ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.translate(ox, oy);
+    try { fn(); } finally { ctx = saved; }
+    return c;
+  }
+  const HD_W = 44, HD_H = 44, HD_OX = 12, HD_OY = 14;   // 간호사 판 크기와 원점 (장식이 위·옆으로 나와도 들어가게)
+  const hdCache = new Map();
+  const EYE = 'rgb(74,50,46)', MOUTH = 'rgb(168,74,92)';
+  function lighter(c, n) { const p = PAL[c]; return p ? `rgb(${p.map(v => Math.min(255, v + n)).join(',')})` : c; }
+  function nurseHD(lk, mood, blink, noPet) {
     const sc = LOOKS.scrub[lk.scrub], hr = LOOKS.hair[lk.hair];
+    const anim = hr.c === 'rb' || sc.pat === 'rainbow' || lk.head === 10 || lk.head === 18 || lk.face === 11 || lk.badge === 11 || (lk.pet > 0 && !noPet);
+    const key = lookStr(lk) + '|' + mood + (blink ? 'b' : '') + (noPet ? 'n' : '') + (anim ? (G.t * 6 | 0) % 12 : '');
+    let cv = hdCache.get(key);
+    if (cv) return cv;
+    if (hdCache.size > 300) hdCache.clear();
     const hc = hr.c === 'rb' ? rb(0) : hr.c;
-    const rows = opt.mood === 'tired' ? NURSE_TIRED : opt.mood === 'joy' ? NURSE_JOY : opt.blink ? NURSE_BLINK : NURSE;
-    const draw = () => {
-      sprite(0, 0, rows, { map: { q: sc.q, Q: sc.Q, h: hc } });
+    cv = scale2x(lowCanvas(HD_W, HD_H, HD_OX, HD_OY, () => sprite(0, 0, NURSE, { map: { q: sc.q, Q: sc.Q, h: hc } })));
+    const g = cv.getContext('2d');
+    const X = HD_OX * 2, Y = HD_OY * 2;
+    const put = (col, x, y, w = 1, h = 1) => { g.fillStyle = CSS[col] || col; g.fillRect(X + x, Y + y, w, h); };
+    // 눈·볼·입 자리를 피부색으로 지우고 새로 그림
+    put('F', 8, 14, 5, 4); put('F', 19, 14, 5, 4); put('F', 8, 18, 4, 2); put('F', 20, 18, 4, 2); put('F', 12, 20, 8, 2);
+    if (mood === 'joy') { put(EYE, 10, 15, 2, 1); put(EYE, 9, 16); put(EYE, 12, 16); put(EYE, 20, 15, 2, 1); put(EYE, 19, 16); put(EYE, 22, 16); }
+    else if (blink || mood === 'tired') { put(EYE, 9, 16, 4, 1); put(EYE, 19, 16, 4, 1); }
+    else { put(EYE, 10, 14, 2, 4); put(EYE, 20, 14, 2, 4); put('W', 10, 14); put('W', 20, 14); }
+    put('P', 8, 19, 3, 1); put('P', 21, 19, 3, 1);
+    if (mood === 'joy') { put(MOUTH, 14, 20, 4, 2); put(MOUTH, 15, 22, 2, 1); }
+    else if (mood === 'tired') put(MOUTH, 14, 21, 4, 1);
+    else { put(MOUTH, 14, 21); put(MOUTH, 17, 21); put(MOUTH, 15, 22, 2, 1); }
+    // 머리 하이라이트
+    if (!hr.bald && hr.c !== 'rb') { const hl = lighter(hc, 45); put(hl, 9, 7, 4, 1); put(hl, 8, 8); put(hl, 13, 2, 2, 1); }
+    // 무늬·소품·얼굴·머리 장식·펫 (2배로 부드럽게 키워 겹침)
+    const over = scale2x(lowCanvas(HD_W, HD_H, HD_OX, HD_OY, () => {
       if (hr.bald) { px(6, 2, 'W'); px(7, 2, 'W'); px(5, 3, 'W'); }
       if (sc.pat === 'stripe') { rect(4, 14, 8, 1, 'W'); rect(4, 16, 8, 1, 'W'); rect(4, 18, 4, 1, 'W'); rect(9, 18, 3, 1, 'W'); }
       else if (sc.pat === 'hawaii') { px(5, 14, 'P'); px(8, 15, 'Y'); px(6, 16, 'Y'); px(10, 16, 'P'); px(7, 13, 'W'); px(9, 13, 'P'); }
@@ -446,11 +496,41 @@
       const f = FACE_DRAW[lk.face]; if (f) f();
       const hd = HEAD_DRAW[lk.head]; if (hd) hd();
       const pt = PET_DRAW[lk.pet];
-      if (pt && !opt.noPet) { ctx.save(); ctx.translate(17, 4 + ((G.t * 2 | 0) % 2)); pt(); ctx.restore(); }
-    };
+      if (pt && !noPet) { ctx.save(); ctx.translate(17, 4 + ((G.t * 2 | 0) % 2)); pt(); ctx.restore(); }
+    }));
+    g.drawImage(over, 0, 0);
+    hdCache.set(key, cv);
+    return cv;
+  }
+  // 간호사 그리기 (scale 배: 1 = 원래 16x22 크기)
+  function nurse(x, y, look, opt = {}) {
+    const lk = typeof look === 'string' ? lookParse(look) : (look || lookParse(''));
+    const cv = nurseHD(lk, opt.mood || '', !!opt.blink, !!opt.noPet);
     const s = opt.scale || 1;
-    if (opt.flip) { ctx.save(); ctx.translate(Math.round(x) + 16 * s, Math.round(y)); ctx.scale(-s, s); draw(); ctx.restore(); }
-    else big(draw, x, y, s);
+    x = Math.round(x); y = Math.round(y);
+    const dw = cv.width * s / 2, dh = cv.height * s / 2;
+    if (opt.flip) { ctx.save(); ctx.translate(x + 16 * s, y - HD_OY * s); ctx.scale(-1, 1); ctx.drawImage(cv, -HD_OX * s, 0, dw, dh); ctx.restore(); }
+    else ctx.drawImage(cv, x - HD_OX * s, y - HD_OY * s, dw, dh);
+  }
+  // 환자 얼굴·진상도 2배로 부드럽게
+  function hdSprite(rows, map) {
+    const key = 'S' + rows.join('/') + JSON.stringify(map || {});
+    let cv = hdCache.get(key);
+    if (!cv) { cv = scale2x(lowCanvas(rows[0].length, rows.length, 0, 0, () => sprite(0, 0, rows, { map }))); hdCache.set(key, cv); }
+    return cv;
+  }
+  function spriteHD(x, y, rows, opt = {}) {
+    const cv = hdSprite(rows, opt.map), s = opt.scale || 1;
+    ctx.drawImage(cv, Math.round(x), Math.round(y), cv.width * s / 2, cv.height * s / 2);
+  }
+  // 누운 환자: 베개 위 얼굴 + 어깨까지 덮은 이불 (머리가 떠 보이지 않게)
+  function lyingPatient(x, y, head, hair, blanket) {
+    spriteHD(x + 12, y + 6, head, { map: { h: hair, K: 'd' } });
+    rrect(x + 1, y + 15, 32, 14, blanket, 'O');
+    rrect(x + 8, y + 12, 18, 6, blanket, 'O');
+    rect(x + 9, y + 15, 16, 3, blanket);
+    rect(x + 2, y + 16, 6, 2, 'W'); rect(x + 26, y + 16, 6, 2, 'W');
+    rect(x + 10, y + 13, 14, 1, 'W');
   }
   // 랭킹·채팅용 작은 얼굴 (머리색 + 근무복 깃 색)
   function miniHead(x, y, look) {
@@ -1032,9 +1112,7 @@
     rrect(x + 9, y + 6, 16, 8, 'G', 'O');
     const mood = G.moodT[i] > 0 ? G.moodK[i] : c ? 'pain' : (i + (G.elapsed / 9 | 0)) % 3 ? 'sleep' : 'calm';
     const head = mood === 'sleep' ? HEAD_SLEEP : mood === 'pain' ? HEAD_PAIN : mood === 'happy' ? HEAD_HAPPY : HEAD;
-    sprite(x + 12, y + 7, head, { map: { h: HAIRS[i] } });
-    rrect(x + 1, y + 15, 32, 14, theme().b, 'O');
-    rect(x + 2, y + 16, 30, 2, 'W');
+    lyingPatient(x, y, head, HAIRS[i], theme().b);
     ptext(ROOMS[i], x + 17, y + 20, 's', 'B', { edge: null, align: 'c' });
     if (mood === 'sleep' && !c) sprite(x + 25, y - 1 - ((G.t * 2 | 0) % 2), ZZ);
     if (mood === 'happy') sprite(x + 25, y + 1, ['.O.O.', 'OPOPO', 'OPPPO', '.OPO.', '..O..']);
@@ -1111,7 +1189,7 @@
       const shake = ev.resultT > 0 ? 0 : ((G.t * 20) | 0) % 2 ? 1 : -1;
       const fly = ev.result === 'win' ? ev.fly : 0;
       ctx.save(); ctx.translate(64, 88); ctx.rotate(fly * 8); ctx.translate(-64, -88);
-      sprite(40 + shake + fly * 140, 62 - fly * 160, KAREN_TYPES[ev.k], { scale: 3 });
+      spriteHD(40 + shake + fly * 140, 62 - fly * 160, KAREN_TYPES[ev.k], { scale: 3 });
       ctx.restore();
       if (!fly) {
         sprite(88, 52, STEAM, { scale: 2 });
@@ -1692,7 +1770,7 @@
     { title: '체력과 커피', lines: ['체력이 조금씩 줄어요', '놓치면 체력 -12', '커피·간식을 눌러 회복'],
       art: () => { bar(14, 44, 100, 0.3 + 0.3 * ((G.t % 3) / 3), 'M'); sprite(40, 60, COFFEE, { scale: 2 }); sprite(70, 62, DONUT, { scale: 2 }); } },
     { title: '진상 보너스', lines: ['가끔 진상이 나타나요', '5초 동안 마구 연타!', '날려 버리면 +1,000'],
-      art: () => { sprite(48, 36, KAREN_TYPES[(G.t / 2 | 0) % 3], { scale: 2 }); ptext('쾅!', 26, 56, 'b', 'Y', { align: 'c' }); ptext('쾅!', 100, 70, 'm', 'Y', { align: 'c' }); } },
+      art: () => { spriteHD(48, 36, KAREN_TYPES[(G.t / 2 | 0) % 3], { scale: 2 }); ptext('쾅!', 26, 56, 'b', 'Y', { align: 'c' }); ptext('쾅!', 100, 70, 'm', 'Y', { align: 'c' }); } },
     { title: '라운딩 타임', lines: ['업무 카드를 보고', '투약·검사·기록 칸을 눌러요', '다 맞히면 +500'],
       art: () => { BIN.forEach((b, i) => { rrect(10 + i * 38, 50, 32, 26, b.fill, 'O', b.dark); ptext(b.name, 26 + i * 38, 54, 'm', 'W', { edge: b.dark, align: 'c' }); }); } },
     { title: '집중 모드', lines: ['15콤보마다 8초 동안', '점수 2배!', '놓치면 바로 끝나요'],
@@ -1704,7 +1782,7 @@
   ];
   function bedAt(x, y, c) {
     rrect(x, y + 10, 34, 9, 'g', 'O'); rrect(x + 1, y + 15, 32, 24, 'W', 'O'); rrect(x + 9, y + 16, 16, 8, 'G', 'O');
-    sprite(x + 12, y + 17, HEAD_PAIN); rrect(x + 1, y + 25, 32, 14, 'q', 'O');
+    lyingPatient(x, y + 10, HEAD_PAIN, 'h', 'q');
     callBubble(x + 18, y - 5, c);
   }
   function drawTut() {
@@ -2000,7 +2078,9 @@
     OFF = Math.floor((HV - H) / 2);
     stageEl.style.width = Math.floor(W * s) + 'px';
     stageEl.style.height = Math.floor(HV * s) + 'px';
-    const k = Math.max(1, Math.min(8, Math.ceil(s * (window.devicePixelRatio || 1))));
+    // 정교한 캐릭터를 반 픽셀로 그리므로 내부 배율은 짝수로
+    let k = Math.max(2, Math.min(8, Math.ceil(s * (window.devicePixelRatio || 1))));
+    if (k % 2) k++;
     if (k !== RES) { RES = k; cvs.width = W * k; ctx.imageSmoothingEnabled = false; }
     if (cvs.height !== HV * RES) { cvs.height = HV * RES; ctx.imageSmoothingEnabled = false; }
     const b = NICK_BOX;
@@ -2045,6 +2125,15 @@
     else if (G.state === 'tut') drawTut();
     else if (G.state === 'rec') drawRec();
     else if (G.state === 'icon') drawIcon();
+    else if (G.state === 'zoom') {
+      rect(0, 0, W, H, 'cream');
+      nurse(4, 4, lookParse(''), { scale: 3 });
+      nurse(60, 4, lookParse(''), { scale: 3, mood: 'joy' });
+      nurse(4, 80, lookParse('0.0.0.2.0.0.0'), { scale: 3 });
+      nurse(60, 80, lookParse('1.2.5.1.4.1.0'), { scale: 3 });
+      nurse(4, 156, lookParse(''), { scale: 3, blink: true });
+      nurse(60, 156, lookParse(''), { scale: 3, mood: 'tired' });
+    }
     else if (G.state === 'install') drawInstall();
     else if (G.state === 'chat') drawChat();
   }
@@ -2089,6 +2178,7 @@
     else if (shot === 'rec') { G.rec = Object.assign(newRec(), { shifts: 23, success: 18, faints: 5, calls: 2140, karens: 31, demands: 60, coffee: 41, wrong: 12, perfect: 7, maxCombo: 64, dailies: 3 }); G.best = 52300; G.state = 'rec'; G.achSel = 9; }
     else if (shot === 'install') G.state = 'install';
     else if (shot === 'icon') G.state = 'icon';
+    else if (shot === 'zoom') { G.state = 'zoom'; }
     else if (shot === 'dup') { Rank.rows = [{ id: 'x', nick: '콜벨헌터', look: lookParse('') }]; openName('title'); nickEl.value = '콜벨헌터'; }
     else if (shot === 'theme') { playAt(() => { G.look.theme = 4; G.elapsed = SHIFT * 0.85; G.evIdx = 4; }); }
     else if (/^tut\d+$/.test(shot)) { G.state = 'tut'; G.tutPage = Math.min(TUT.length, +shot.slice(3)) - 1; }
