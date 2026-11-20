@@ -1,0 +1,5 @@
+dist/
+shots/
+__pycache__/
+.sbtoken
+supabase/.temp/

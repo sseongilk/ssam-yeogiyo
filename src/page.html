@@ -1,0 +1,75 @@
+<title>나이트 생존기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/*FONTS*/
+/* 한 화면짜리 도트 게임: 남색 바탕 가운데에 128x224 캔버스를 정수 배율로 확대 */
+:root {
+  --bg: #28305a;
+  --ink: #4a3054;
+  --paper: #fff4e0;
+  --focus: #7ec4f0;
+  --font-pixel: 'Galmuri9', 'Galmuri11B', monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+@supports (height: 100dvh) { html, body { height: 100dvh; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#wrap {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+#stage { position: relative; flex: none; }
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;
+  cursor: pointer;
+  outline: none;
+}
+#game:focus-visible { box-shadow: 0 0 0 3px var(--focus); }
+#nick, #chatin {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-pixel);
+  text-align: center;
+  -webkit-user-select: text;
+  user-select: text;
+}
+#nick:focus-visible, #chatin:focus-visible { background: #fff; }
+#nick[hidden], #chatin[hidden] { display: none; }
+#chatin { text-align: left; }
+</style>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="game" width="128" height="224" tabindex="0" aria-label="나이트 생존기 게임 화면. 숫자 1~6으로 침대, 스페이스로 연타"></canvas>
+    <input id="nick" type="text" maxlength="5" autocomplete="off" spellcheck="false" enterkeyhint="done" aria-label="플레이어 이름" hidden>
+    <input id="chatin" type="text" maxlength="40" autocomplete="off" spellcheck="false" enterkeyhint="send" aria-label="채팅 메시지" placeholder="메시지 입력" hidden>
+  </div>
+</div>
+<script>
+/*GAME*/
+</script>

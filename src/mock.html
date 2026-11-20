@@ -1,0 +1,31 @@
+<title>나이트 생존기 시안</title>
+<style>
+/*FONTS*/
+:root { --bg: #2c3460; --ink: #fff4e0; --sub: #b8c4f0; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Galmuri9', monospace; }
+main { padding: 20px 16px 32px; max-width: 1500px; margin: 0 auto; }
+h1 { font-family: 'Galmuri11B', monospace; font-size: 24px; margin: 0 0 4px; }
+p.lead { margin: 0 0 18px; color: var(--sub); font-size: 13px; }
+.grid { display: flex; flex-wrap: wrap; gap: 18px; }
+figure { margin: 0; }
+canvas { display: block; width: 256px; height: 448px; image-rendering: pixelated; border-radius: 6px; }
+figcaption { margin-top: 6px; font-size: 13px; text-align: center; color: var(--sub); }
+figcaption b { color: var(--ink); font-weight: normal; }
+</style>
+<main>
+  <h1>나이트 생존기 · 캐릭터·화면 시안</h1>
+  <p class="lead">128×224 도트 화면을 2배로 표시. 움직임은 일부만 넣은 정지 시안.</p>
+  <div class="grid">
+    <figure><canvas id="c0" width="128" height="224"></canvas><figcaption><b>캐릭터 모음</b></figcaption></figure>
+    <figure><canvas id="c1" width="128" height="224"></canvas><figcaption><b>시작 화면</b></figcaption></figure>
+    <figure><canvas id="c2" width="128" height="224"></canvas><figcaption><b>본 게임</b> · 콜벨 팡팡</figcaption></figure>
+    <figure><canvas id="c3" width="128" height="224"></canvas><figcaption><b>진상 보너스</b> · 연타로 날리기</figcaption></figure>
+    <figure><canvas id="c4" width="128" height="224"></canvas><figcaption><b>라운딩 타임</b> · 업무 정리</figcaption></figure>
+    <figure><canvas id="c5" width="128" height="224"></canvas><figcaption><b>퇴근 성공</b></figcaption></figure>
+    <figure><canvas id="c6" width="128" height="224"></canvas><figcaption><b>휴게실</b> · 꾸미기</figcaption></figure>
+    <figure><canvas id="c7" width="128" height="224"></canvas><figcaption><b>진상 모음</b> · 대사 7개</figcaption></figure>
+  </div>
+</main>
+<script>
+/*GAME*/
+</script>
