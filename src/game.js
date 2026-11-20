@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   // ============================================================
-  // 나이트 생존기 - 128x224 도트 화면. 밤 근무 동안 콜벨을 끄고 아침 7시에 퇴근
+  // 쌤! 여기요! - 128x224 도트 화면. 밤 근무 동안 콜벨에 응답하고 아침 7시에 퇴근
   // ============================================================
   const W = 128, H = 224;
   const cvs = document.getElementById('game');
@@ -1041,24 +1041,35 @@
   const T_CHAT = { x: 66, y: 209, w: 56, h: 13 };
   const T_HELP = { x: 3, y: 3, w: 44, h: 13 };
   const T_SOUND = { x: 110, y: 2, w: 16, h: 12 };
+  // 게임 이름
+  const TITLE = { l: '쌤! 여기요!', sub: '콜벨 팡팡' };
+  function drawLogo(tt) {
+    // 한 줄에 안 들어가면 띄어쓰기에서 두 줄로
+    const lines = textW(tt.l, 'b') * 2 <= 108 ? [tt.l] : tt.l.split(' ');
+    const h = 10 + lines.length * 23 + 16;
+    rrect(6, 19, 116, h, 'W', 'O', 'p');
+    lines.forEach((l, i) => {
+      const y = 23 + i * 23;
+      ptext(l, 65, y + 1, 'b', 'p', { scale: 2, align: 'c', edge: 'p' });
+      ptext(l, 64, y, 'b', i % 2 ? 'S' : 'P', { scale: 2, align: 'c', edge: 'O' });
+    });
+    pill(tt.sub, 64, 19 + h - 13, 'N', 'X', 'm');
+    if (((G.t * 1.5) | 0) % 2 === 0) sprite(110, 23, SPARK); else sprite(12, 19 + h - 22, SPARK);
+  }
   function drawTitle() {
     rect(0, 0, W, 122, 'N');
     stars();
     sprite(96, 5, MOON);
-    rrect(14, 76, 100, 46, 'wall2', 'O');
-    rrect(54, 68, 20, 12, 'wall2', 'O');
-    rect(61, 71, 6, 2, 'R'); rect(63, 69, 2, 6, 'R');
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) {
+    rrect(14, 100, 100, 22, 'wall2', 'O');
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 6; c++) {
       const lit = (r * 7 + c * 3 + (G.t * 0.5 | 0)) % 4 !== 0;
-      rect(20 + c * 15, 84 + r * 12, 9, 7, lit ? 'X' : 'n');
+      rect(20 + c * 15, 104 + r * 9, 9, 6, lit ? 'X' : 'n');
     }
     floor(122);
     sprite(114, 4, soundOn ? SPEAKER : SPEAKER_OFF);
     rrect(T_HELP.x, T_HELP.y, T_HELP.w, T_HELP.h, 'W', 'O', 'cream3');
     ptext('튜토리얼', T_HELP.x + T_HELP.w / 2, T_HELP.y + 3, 's', 'O', { edge: null, align: 'c' });
-    rrect(8, 20, 112, 46, 'W', 'O', 'l');
-    ptext('나이트', 64, 23, 'b', 'N', { scale: 2, align: 'c' });
-    pill('생존기', 64, 49, 'P', 'W', 'b', 'p');
+    drawLogo(TITLE);
     nurse(8, 122, G.look, { blink: blinkNow(), scale: 2 });
     sprite(44, 152, COFFEE);
     const hello = G.nick ? fitText('안녕, ' + G.nick + '!', 70, 's').t : '오늘 밤도 화이팅!';
