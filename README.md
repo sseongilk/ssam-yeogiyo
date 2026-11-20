@@ -12,6 +12,7 @@
 - 고른 물건은 계속 들고 있어 같은 요청을 연달아 처리 가능, 간호사 머리 위에 표시
 - 틀린 물건을 주면 「이거 말고요!」: 콤보·집중 모드 끝, 체력 -3, 콜벨은 남음
 - 빨간 말풍선(무리한 요구)은 거절 도장을 들고 세 번 눌러 거절
+- 체력 막대 오른쪽 일시정지 버튼(PC는 Esc·P): 계속하기 / 그만하기(이번 기록은 저장 안 함). 다른 앱으로 넘어가면 자동 일시정지
 - 진상 보너스는 화면을 마구 연타 (PC는 스페이스), 라운딩은 투약·검사·기록 칸을 누름 (PC는 1·2·3)
 
 ## 규칙
@@ -57,5 +58,5 @@
 
 ## 화면 확인용
 `dist/play.html?shot=이름` (네트워크를 쓰지 않음)
-- `play` `fever` `karen` `karenwin` `round` `over` `fail` `name` `code` `dress` `lounge` `rank` `ward` `chat` `chattitle` `tut1`~`tut8` `run`
+- `play` `fever` `pause` `karen` `karenwin` `round` `over` `fail` `name` `code` `dress` `lounge` `rank` `ward` `chat` `chattitle` `tut1`~`tut8` `run`
 - `auto`: 자동으로 한 판을 끝까지 하고 결과를 페이지 제목에 기록

@@ -213,14 +213,14 @@
     '...OOOhhhhOOO...',
     '..OhhhhhhhhhhO..',
     '.OhhhhhhhhhhhhO.',
-    '.OhhFFFFFFFFhhO.',
-    '.OhFFFFFFFFFFhO.',
-    '.OhFFKFFFFKFFhO.',
-    '.OhFFKFFFFKFFhO.',
-    '.OhFPPFFFFPPFhO.',
-    '..OFFFFOOFFFFO..',
-    '...OOFFFFFFOO...',
-    '....OOqFFqOO....',
+    '.OhhhhhhhFFhhhO.',
+    '.OhhhhFFFFFFFhO.',
+    '.OhhFKFFFFKFFhO.',
+    '.OhhFKFFFFKFFhO.',
+    '.OhhPPFFFFPPFhO.',
+    '.OhOFFFOOFFFOhO.',
+    '.OhhOOFFFFOOhhO.',
+    '.OhhhOqFFqOhhhO.',
     '..OOqqqFFqqqOO..',
     '.OqOqqqqqqWWOqO.',
     '.OqOqqqqqqWBOqO.',
@@ -231,9 +231,9 @@
     '...OWWWO.OWWWO..',
     '...OOOOO.OOOOO..',
   ];
-  const NURSE_BLINK = NURSE.map((r, j) => j === 7 ? '.OhFFFFFFFFFFhO.' : j === 8 ? '.OhFOOFFFFOOFhO.' : r);
-  const NURSE_TIRED = NURSE.map((r, j) => j === 7 ? '.OhFFFFFFFFFFhO.' : j === 8 ? '.OhFOOFFFFOOFhO.' : j === 10 ? '..OFFFFFFFFFFO..' : j === 11 ? '...OOFFOOFFOO...' : r);
-  const NURSE_JOY = NURSE.map((r, j) => j === 7 ? '.OhFOFFFFFFOFhO.' : j === 8 ? '.OhFFOFFFFOFFhO.' : j === 10 ? '..OFFFOWWOFFFO..' : r);
+  const NURSE_BLINK = NURSE.map((r, j) => j === 7 ? '.OhhFFFFFFFFFhO.' : j === 8 ? '.OhhOOFFFFOOFhO.' : r);
+  const NURSE_TIRED = NURSE.map((r, j) => j === 7 ? '.OhhFFFFFFFFFhO.' : j === 8 ? '.OhhOOFFFFOOFhO.' : j === 10 ? '.OhOFFFFFFFFOhO.' : j === 11 ? '.OhhOOFOOFOOhhO.' : r);
+  const NURSE_JOY = NURSE.map((r, j) => j === 7 ? '.OhhOFFFFFFOFhO.' : j === 8 ? '.OhhFOFFFFOFFhO.' : j === 10 ? '.OhOFFOWWOFFOhO.' : r);
   const HEAD = ['..OOOOOO..', '.OhhhhhhO.', 'OhhhhhhhhO', 'OFFFFFFFFO', 'OFKFFFFKFO', 'OFPFFFFPFO', '.OFFOOFFO.', '..OOOOOO..'];
   const HEAD_SLEEP = HEAD.map((r, j) => j === 4 ? 'OFOOFFOOFO' : j === 6 ? '.OFFFFFFO.' : r);
   const HEAD_PAIN = HEAD.map((r, j) => j === 3 ? 'OFOFFFFOFO' : j === 6 ? '.OFOOOOFO.' : r);
@@ -446,7 +446,7 @@
   function miniHead(x, y, look) {
     const lk = typeof look === 'string' ? lookParse(look) : look;
     const hc = LOOKS.hair[lk.hair].c, sc = LOOKS.scrub[lk.scrub].q;
-    sprite(x, y, ['.OOOOO.', 'OaaaaaO', 'OaFFFaO', 'OFKFKFO', '.ObbbO.'], { map: { a: hc, b: sc } });
+    sprite(x, y, ['.OOOOO.', 'OaaaaaO', 'OaaFFaO', 'OFKFKFO', 'OaFFFaO', 'OabbbaO'], { map: { a: hc, b: sc } });
     if (lk.head === 7) sprite(x + 1, y - 3, ['O.O.O', 'OYYYO', 'OOOOO']);
   }
 
@@ -713,7 +713,7 @@
       items: [], fx: [], fever: 0, shake: 0,
       stats: { calls: 0, karens: 0, coffee: 0, missed: 0, demands: 0, wrong: 0 }, tool: null, toolT: 0,
       event: null, evIdx: 0, nextSpawn: 1.2, nextItem: 8, noteText: '', noteT: 0,
-      overMsg: null, success: false, newBest: false, unlockMsg: '',
+      paused: false, overMsg: null, success: false, newBest: false, unlockMsg: '',
     });
     note('밤 근무 시작!', 'S');
   }
@@ -765,6 +765,20 @@
     G.calls[i] = null; G.moodT[i] = 1.4; G.moodK[i] = 'happy';
     if (G.combo % 15 === 0 && G.fever <= 0) { G.fever = 8; note('집중 모드! 점수 2배', 'Y'); SFX.fever(); }
   }
+  const P_BTN = { x: 103, y: 19, w: 22, h: 12 };
+  const P_RESUME = { x: 22, y: 98, w: 84, h: 18 }, P_QUIT = { x: 22, y: 122, w: 84, h: 16 };
+  function drawPause() {
+    ctx.fillStyle = 'rgba(40,48,92,0.75)'; ctx.fillRect(0, 0, W, H);
+    rrect(14, 60, 100, 100, 'cream', 'O', 'cream3');
+    ptext('잠깐 쉬는 중', 64, 68, 'b', 'O', { edge: null, align: 'c' });
+    ptext(clockStr() + ' · ' + fmt(G.score) + '점', 64, 84, 's', 'o', { edge: null, align: 'c' });
+    button(P_RESUME, 'Y', 'y', '계속하기', 'b', 'O');
+    button(P_QUIT, 'W', 'cream3', '그만하기', 'm', 'O');
+    ptext('그만하면 이번 기록은', 64, 142, 's', 'p', { edge: null, align: 'c' });
+    ptext('저장되지 않아요', 64, 151, 's', 'p', { edge: null, align: 'c' });
+  }
+  function setPause(on) { if (G.state !== 'play') return; G.paused = on; SFX.tap(); }
+  function quitShift() { G.paused = false; G.event = null; G.state = 'title'; G.st = 0; }
   function pickTool(k) { G.tool = G.tool === k ? null : k; SFX.tap(); }
   function missCall(i) {
     const [bx, by] = BEDS[i];
@@ -792,6 +806,7 @@
     if (G.state === 'play') updatePlay(dt);
   }
   function updatePlay(dt) {
+    if (G.paused) return;
     G.fx.forEach(f => f.t += dt); G.fx = G.fx.filter(f => f.t < 0.9);
     if (G.noteT > 0) G.noteT -= dt;
     if (G.shake > 0) G.shake -= dt;
@@ -917,7 +932,8 @@
     ptext(fmt(G.score), 69, 6, 'm', 'O', { edge: null });
     sprite(3, 21, COFFEE);
     bar(14, 22, 84, G.stamina / 100, fever ? rb(0) : G.stamina < 30 ? 'P' : 'M');
-    ptext(G.mode === 'daily' ? '오늘' : '체력', 112, 22, 's', 'o', { edge: null, align: 'c' });
+    rrect(P_BTN.x, P_BTN.y, P_BTN.w, P_BTN.h, 'W', 'O', 'cream3');
+    rect(P_BTN.x + 8, P_BTN.y + 3, 2, 6, 'O'); rect(P_BTN.x + 12, P_BTN.y + 3, 2, 6, 'O');
     // 창문 + 병동 이름
     rrect(6, 32, 30, 14, 'N', 'O'); px(14, 36, 'W'); px(26, 39, 'X'); px(20, 35, 'W');
     rrect(92, 32, 30, 14, 'N', 'O'); sprite(110, 35, MOON);
@@ -949,6 +965,7 @@
     if (!G.tool && G.elapsed < 6) ptext('▼ 먼저 고르고 침대를 눌러요', 64, 184, 's', 'B', { edge: 'W', align: 'c' });
     ctx.restore();
     if (G.event) drawEvent();
+    if (G.paused) drawPause();
   }
 
   // ---------- 화면: 진상 보너스 · 라운딩 ----------
@@ -1325,6 +1342,7 @@
   }
   const L_SLOTS = FURN.map((f, i) => ({ x: 5 + (i % 7) * 17, y: 140 + Math.floor(i / 7) * 18, w: 16, h: 16 }));
   function drawLounge() {
+    ctx.drawImage(WALL, 0, 0);
     rect(0, 0, W, 122, 'cream');
     for (let x = 0; x < W; x += 12) rect(x, 26, 6, 92, 'cream2');
     rect(0, 116, W, 4, 'Z'); floor(120, 126);
@@ -1538,6 +1556,8 @@
     if (!G.nick) openName('play'); else newGame(mode);
   }
   function playTap(p) {
+    if (G.paused) { if (inBox(p, P_RESUME)) setPause(false); else if (inBox(p, P_QUIT)) { SFX.tap(); quitShift(); } return; }
+    if (inBox(p, P_BTN)) { setPause(true); return; }
     if (G.event) { eventTap(p); return; }
     const ti = B_TOOLS.findIndex(b => inBox(p, b));
     if (ti >= 0) { pickTool(TOOLS[ti].k); return; }
@@ -1647,6 +1667,8 @@
       e.preventDefault(); return;
     }
     if (G.state === 'play') {
+      if (k === 'Escape' || k === 'p' || k === 'P') { setPause(!G.paused); e.preventDefault(); return; }
+      if (G.paused) return;
       // PC: 1~6 숫자로 침대, 스페이스로 진상 연타
       if (G.event && (k === ' ' || k === 'Enter')) { eventTap({ x: -99, y: -99 }); e.preventDefault(); }
       else if (G.event && G.event.type === 'round' && ['1', '2', '3'].includes(k)) { const b = B_BINS[+k - 1]; eventTap({ x: b.x + 2, y: b.y - 28 }); }
@@ -1687,6 +1709,8 @@
     Object.assign(chatEl.style, { left: (c.x + 2) * s + 'px', top: (c.y + 2 + OFF) * s + 'px', width: (c.w - 4) * s + 'px', height: (c.h - 4) * s + 'px', fontSize: Math.round(10 * s) + 'px', paddingLeft: Math.round(2 * s) + 'px' });
   }
   window.addEventListener('resize', layout);
+  // 다른 앱으로 넘어가면 자동으로 일시정지
+  document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play' && !G.paused) G.paused = true; });
 
   // ---------- 루프 ----------
   function bandColor() {
@@ -1735,6 +1759,7 @@
       if (extra) extra(); };
     if (shot === 'play') playAt();
     else if (shot === 'fever') playAt(() => { G.fever = 5; });
+    else if (shot === 'pause') playAt(() => { G.paused = true; });
     else if (shot === 'karen') playAt(() => { startEvent('karen'); G.event.intro = 0; G.event.taps = 17; G.event.time = 2.4; fx(30, 118, '쾅!', 'Y', 'b'); });
     else if (shot === 'karenwin') playAt(() => { startEvent('karen'); G.event.intro = 0; G.event.taps = 24; G.event.result = 'win'; G.event.resultT = 1.2; G.event.fly = 0.1; });
     else if (shot === 'round') playAt(() => { startEvent('round'); G.event.intro = 0; G.event.idx = 2; G.event.ok = 2; G.event.time = 6.3; });
